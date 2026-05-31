@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Custódia",
+    "slug": "custodia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#1A1714"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.custodia.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1A1714"
+      },
+      "package": "com.custodia.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset"
+    ],
+    "scheme": "custodia",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
