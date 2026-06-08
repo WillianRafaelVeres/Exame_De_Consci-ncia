@@ -1,15 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Sin, SinSourceType } from '../types';
 import { theme } from '../constants/theme';
-import { formatRelative } from '../utils/date';
 
 interface SinCardProps {
   sin: Sin;
   onPress: () => void;
   onDelete: () => void;
-  onToggleNeedsConfession?: () => void;
 }
 
 const TYPE_LABELS: Record<SinSourceType, string> = {
@@ -19,30 +17,20 @@ const TYPE_LABELS: Record<SinSourceType, string> = {
   manual: 'Manual',
 };
 
-export function SinCard({
-  sin,
-  onPress,
-  onDelete,
-  onToggleNeedsConfession,
-}: SinCardProps) {
-  const sourceLabel = sin.type
-    ? TYPE_LABELS[sin.type]
-    : sin.commandment
-    ? 'Mandamento'
-    : sin.category
-    ? 'Categoria'
-    : 'Manual';
-
-  const sourceTitle = sin.sourceTitle ?? sin.commandment ?? sin.category;
-
+export function SinCard({ sin, onPress, onDelete }: SinCardProps) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View style={styles.statusDot} />
-          <Text style={styles.title} numberOfLines={2}>
-            {sin.title}
+          <Text style={styles.text} numberOfLines={4}>
+            {sin.text}
           </Text>
+          {sin.count > 1 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>x{sin.count}</Text>
+            </View>
+          )}
         </View>
         <TouchableOpacity
           onPress={onDelete}
@@ -54,54 +42,19 @@ export function SinCard({
       </View>
 
       <View style={styles.meta}>
-        <Text style={styles.date}>{formatRelative(sin.date)}</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{sourceLabel}</Text>
+          <Text style={styles.badgeText}>{TYPE_LABELS[sin.sourceType]}</Text>
         </View>
-        {sourceTitle && (
-          <View style={[styles.badge, styles.sourceBadge]}>
-            <Text style={[styles.badgeText, styles.sourceBadgeText]} numberOfLines={1}>
-              {sourceTitle}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {sin.description && (
-        <Text style={styles.description} numberOfLines={2}>
-          {sin.description}
-        </Text>
-      )}
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.indicator,
-            sin.needsConfession && styles.indicatorActive,
-          ]}
-          onPress={onToggleNeedsConfession}
-          activeOpacity={onToggleNeedsConfession ? 0.7 : 1}
-          disabled={!onToggleNeedsConfession}
-        >
-          <Feather
-            name={sin.needsConfession ? 'alert-circle' : 'circle'}
-            size={12}
-            color={sin.needsConfession ? theme.colors.warning : theme.colors.textMuted}
-          />
-          <Text
-            style={[
-              styles.indicatorText,
-              sin.needsConfession && { color: theme.colors.warning },
-            ]}
-          >
-            {sin.needsConfession ? 'Levar à confissão' : 'Não marcado para confissão'}
+        <View style={[styles.badge, styles.sourceBadge]}>
+          <Text style={[styles.badgeText, styles.sourceBadgeText]} numberOfLines={1}>
+            {sin.sourceTitle}
           </Text>
-        </TouchableOpacity>
-
-        {sin.isRepeated && (
-          <View style={styles.indicator}>
-            <Feather name="repeat" size={12} color={theme.colors.textMuted} />
-            <Text style={styles.indicatorText}>Recorrente</Text>
+        </View>
+        {sin.fromQuestion && (
+          <View style={[styles.badge, styles.questionBadge]}>
+            <Text style={[styles.badgeText, styles.questionBadgeText]}>
+              pergunta marcada
+            </Text>
           </View>
         )}
       </View>
@@ -134,17 +87,32 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginTop: 5,
+    marginTop: 6,
     marginRight: theme.spacing.sm,
     flexShrink: 0,
     backgroundColor: theme.colors.accent,
   },
-  title: {
+  text: {
     fontSize: theme.fontSize.md,
     color: theme.colors.textPrimary,
     fontWeight: '500',
     flex: 1,
     lineHeight: 22,
+  },
+  countBadge: {
+    marginLeft: theme.spacing.sm,
+    minWidth: 34,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.sm,
+  },
+  countText: {
+    color: theme.colors.black,
+    fontSize: theme.fontSize.sm,
+    fontWeight: '900',
   },
   deleteButton: {
     padding: theme.spacing.xs,
@@ -153,14 +121,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
-    marginBottom: theme.spacing.sm,
     paddingLeft: theme.spacing.md + theme.spacing.sm,
-  },
-  date: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textMuted,
-    marginRight: theme.spacing.xs,
-    alignSelf: 'center',
   },
   badge: {
     backgroundColor: theme.colors.accentDark + '33',
@@ -184,32 +145,11 @@ const styles = StyleSheet.create({
   sourceBadgeText: {
     color: theme.colors.textSecondary,
   },
-  description: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-    paddingLeft: theme.spacing.md + theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+  questionBadge: {
+    backgroundColor: theme.colors.success + '18',
+    borderColor: theme.colors.success + '44',
   },
-  footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    paddingLeft: theme.spacing.md + theme.spacing.sm,
-  },
-  indicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 3,
-  },
-  indicatorActive: {
-    backgroundColor: theme.colors.warning + '14',
-  },
-  indicatorText: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.textMuted,
+  questionBadgeText: {
+    color: theme.colors.success,
   },
 });

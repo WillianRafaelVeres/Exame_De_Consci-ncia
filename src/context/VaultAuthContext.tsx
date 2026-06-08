@@ -1,10 +1,10 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
-  useState,
   useEffect,
   useRef,
-  useCallback,
+  useState,
 } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -119,7 +119,7 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
         setVaultUnlocked(false);
         setHasPin(true);
         setVaultError(
-          'Não foi possível carregar a segurança do Cofre. O acesso aos registros permanece bloqueado.'
+          'Nao foi possivel carregar a seguranca do Cofre. O acesso aos registros permanece bloqueado.'
         );
       }
     };
@@ -175,7 +175,7 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Erro ao desbloquear Cofre:', error);
         setVaultUnlocked(false);
-        setVaultError('Não foi possível desbloquear o Cofre. Tente novamente.');
+        setVaultError('Nao foi possivel desbloquear o Cofre. Tente novamente.');
         return false;
       }
     },
@@ -187,7 +187,7 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Abrir Registros',
+        promptMessage: 'Abrir Cofre',
         cancelLabel: 'Cancelar',
         disableDeviceFallback: true,
       });
@@ -202,7 +202,7 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (error) {
       console.error('Erro ao desbloquear com biometria:', error);
-      setVaultError('Não foi possível usar a biometria. Digite o PIN do Cofre.');
+      setVaultError('Nao foi possivel usar a digital. Digite o PIN do Cofre.');
       return false;
     }
   }, [
@@ -247,7 +247,7 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
       setHasPin(true);
       setVaultUnlocked(false);
       setVaultError(
-        'Não foi possível atualizar a segurança do Cofre. O acesso aos registros permanece bloqueado.'
+        'Nao foi possivel atualizar a seguranca do Cofre. O acesso aos registros permanece bloqueado.'
       );
     }
   }, []);
@@ -264,19 +264,19 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
     setBiometricAvailable(available);
     if (!available) {
       const error =
-        'A biometria não está disponível ou não está cadastrada neste aparelho.';
+        'A digital nao esta disponivel ou nao esta cadastrada neste aparelho.';
       setVaultError(error);
       return { success: false, error };
     }
 
     const auth = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Ativar digital para Registros',
+      promptMessage: 'Ativar digital para o Cofre',
       cancelLabel: 'Cancelar',
       disableDeviceFallback: true,
     });
 
     if (!auth.success) {
-      const error = 'A biometria não foi confirmada.';
+      const error = 'A digital nao foi confirmada.';
       setVaultError(error);
       return { success: false, error };
     }
@@ -302,7 +302,7 @@ export function VaultAuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Erro ao salvar bloqueio automatico do Cofre:', error);
         setVaultError(
-          'Não foi possível salvar essa configuração. Tente novamente.'
+          'Nao foi possivel salvar essa configuracao. Tente novamente.'
         );
       }
     },

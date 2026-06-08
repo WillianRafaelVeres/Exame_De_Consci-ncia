@@ -1,8 +1,25 @@
-import { getJson, setJson } from '../services/storage';
+import { getAllKeys, getJson, removeItems, setJson, setString } from '../services/storage';
 import { prayers } from '../content/prayers';
 import { guideItems } from '../content/guideItems';
 
+const RESET_MARKER_KEY = 'custodia:reset:v2_logo_latin_counts';
+
+async function resetLocalDataOnce(): Promise<void> {
+  const alreadyReset = await getJson<boolean>(RESET_MARKER_KEY);
+  if (alreadyReset) return;
+
+  const keys = await getAllKeys();
+  const custodiaKeys = keys.filter(
+    (key) => key.startsWith('custodia:') && key !== RESET_MARKER_KEY
+  );
+
+  await removeItems(custodiaKeys);
+  await setString(RESET_MARKER_KEY, 'true');
+}
+
 export async function initializeDatabase(): Promise<void> {
+  await resetLocalDataOnce();
+
   // Seed prayers
   const existingPrayers = await getJson<typeof prayers>('custodia:prayers');
   if (!existingPrayers) {

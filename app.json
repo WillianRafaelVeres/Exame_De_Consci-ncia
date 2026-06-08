@@ -7,7 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#1A1714"
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#11151A"
     },
     "ios": {
       "supportsTablet": false,
@@ -15,7 +17,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1A1714"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#11151A"
       },
       "package": "com.custodia.app"
     },
@@ -26,6 +29,12 @@
     "scheme": "custodia",
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f1e04b4b-38c7-4025-ac9c-acb8597f6028"
+      }
     }
   }
 }

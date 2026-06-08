@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { PinInput } from './PinInput';
 import { Numpad } from './Numpad';
@@ -60,10 +66,10 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
     clearVaultError();
     if (isCreating) {
       setupStep === 'enter'
-        ? setPin((p) => p.slice(0, -1))
-        : setConfirmPin((p) => p.slice(0, -1));
+        ? setPin((value) => value.slice(0, -1))
+        : setConfirmPin((value) => value.slice(0, -1));
     } else {
-      setPin((p) => p.slice(0, -1));
+      setPin((value) => value.slice(0, -1));
     }
   };
 
@@ -110,21 +116,7 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
     } catch (err) {
       console.error('Erro ao verificar PIN do Cofre:', err);
       setPin('');
-      setError('Não foi possível verificar o PIN do Cofre. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const attemptBiometric = async () => {
-    setLoading(true);
-    setError('');
-    clearVaultError();
-    try {
-      const success = await unlockVaultWithBiometric();
-      if (!success) {
-        setError('Biometria não reconhecida. Use o PIN do Cofre.');
-      }
+      setError('Nao foi possivel verificar o PIN do Cofre. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -132,7 +124,7 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
 
   const finalizeSetup = async (confirmValue: string) => {
     if (pin !== confirmValue) {
-      setError('Os PINs não coincidem. Tente novamente.');
+      setError('Os PINs nao coincidem. Tente novamente.');
       setSetupStep('enter');
       setPin('');
       setConfirmPin('');
@@ -151,7 +143,7 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
       }
     } catch (err) {
       console.error('Erro ao finalizar PIN do Cofre:', err);
-      setError('Não foi possível criar o PIN do Cofre. Tente novamente.');
+      setError('Nao foi possivel criar o PIN do Cofre. Tente novamente.');
       setSetupStep('enter');
       setPin('');
       setConfirmPin('');
@@ -167,6 +159,21 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
     setError('');
   };
 
+  const attemptBiometric = async () => {
+    if (!canUseBiometric || loading) return;
+    setLoading(true);
+    setError('');
+    clearVaultError();
+    try {
+      const success = await unlockVaultWithBiometric();
+      if (!success) {
+        setError('Digital nao reconhecida. Use o PIN do Cofre.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -180,12 +187,12 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
           </View>
         </View>
 
-        <Text style={styles.title}>Área reservada</Text>
+        <Text style={styles.title}>Area reservada</Text>
 
         <Text style={styles.subtitle}>
           {isCreating
             ? setupStep === 'enter'
-              ? 'Esta parte guarda suas anotações mais pessoais.\nCrie um PIN do Cofre de 6 dígitos.'
+              ? 'Esta parte guarda suas anotacoes mais pessoais.\nCrie um PIN do Cofre de 6 digitos.'
               : 'Confirme o PIN do Cofre para garantir que anotou corretamente.'
             : 'Para ver os registros, digite o PIN do Cofre.'}
         </Text>
@@ -216,10 +223,14 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
           <TouchableOpacity
             style={styles.biometricButton}
             onPress={attemptBiometric}
-            activeOpacity={0.75}
             disabled={loading}
+            activeOpacity={0.78}
           >
-            <Feather name="unlock" size={18} color={theme.colors.accent} />
+            <MaterialCommunityIcons
+              name="fingerprint"
+              size={18}
+              color={theme.colors.black}
+            />
             <Text style={styles.biometricButtonText}>Abrir com digital</Text>
           </TouchableOpacity>
         )}
@@ -232,7 +243,7 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
             style={{ marginRight: 5 }}
           />
           <Text style={styles.pinOnlyText}>
-            O Cofre protege apenas Registros e Confissão.
+            O Cofre protege apenas Registros e Confissao.
           </Text>
         </View>
 
@@ -247,7 +258,7 @@ export function VaultLockScreen({ onBack }: VaultLockScreenProps) {
         <View style={styles.buttonsRow}>
           {isCreating && setupStep === 'confirm' && (
             <Button
-              title="Voltar ao início"
+              title="Voltar ao inicio"
               variant="ghost"
               onPress={handleBackSetup}
               style={styles.linkButton}
@@ -350,18 +361,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.accent + '66',
-    backgroundColor: theme.colors.accent + '14',
-    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.accent,
+    borderRadius: 22,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
     marginBottom: theme.spacing.md,
   },
   biometricButtonText: {
-    color: theme.colors.accent,
+    color: theme.colors.black,
     fontSize: theme.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   pinOnlyRow: {
     flexDirection: 'row',

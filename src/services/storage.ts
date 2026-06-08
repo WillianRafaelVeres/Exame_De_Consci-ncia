@@ -25,3 +25,12 @@ export async function setString(key: string, value: string): Promise<void> {
 export async function removeItem(key: string): Promise<void> {
   await AsyncStorage.removeItem(key);
 }
+
+export async function removeItems(keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  await AsyncStorage.multiRemove(keys);
+}
+
+export async function getAllKeys(): Promise<readonly string[]> {
+  return AsyncStorage.getAllKeys();
+}

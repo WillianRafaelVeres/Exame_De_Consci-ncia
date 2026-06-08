@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Alert,
   Modal,
-  Platform,
+  ScrollView,
+  StyleSheet,
   Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -16,15 +15,13 @@ import { theme } from '../../src/constants/theme';
 import { PinInput } from '../../src/components/PinInput';
 import { Numpad } from '../../src/components/Numpad';
 import { Button } from '../../src/components/Button';
-import { VaultPinModal } from '../../src/components/VaultPinModal';
-import { useVaultAuth, AutoLockMinutes } from '../../src/context/VaultAuthContext';
-import { verifyVaultPin } from '../../src/services/vaultAuth';
+import { AutoLockMinutes, useVaultAuth } from '../../src/context/VaultAuthContext';
 
 const AUTO_LOCK_OPTIONS: { value: AutoLockMinutes; label: string }[] = [
   { value: 0, label: 'Ao ir para segundo plano' },
-  { value: 1, label: 'Após 1 minuto de inatividade' },
-  { value: 5, label: 'Após 5 minutos de inatividade' },
-  { value: 15, label: 'Após 15 minutos de inatividade' },
+  { value: 1, label: 'Apos 1 minuto de inatividade' },
+  { value: 5, label: 'Apos 5 minutos de inatividade' },
+  { value: 15, label: 'Apos 15 minutos de inatividade' },
 ];
 
 const PIN_LENGTH = 6;
@@ -45,10 +42,10 @@ export default function SettingsScreen() {
     biometricAvailable,
     enableVaultBiometric,
     disableVaultBiometric,
+    refreshBiometricState,
   } = useVaultAuth();
 
   const [showVaultPinFlow, setShowVaultPinFlow] = useState(false);
-  const [showBiometricPinModal, setShowBiometricPinModal] = useState(false);
   const [vaultFlowMode, setVaultFlowMode] =
     useState<VaultPinFlowMode>('create');
   const [vaultPin, setVaultPin] = useState('');
@@ -56,6 +53,10 @@ export default function SettingsScreen() {
   const [vaultConfirmPin, setVaultConfirmPin] = useState('');
   const [vaultPinError, setVaultPinError] = useState('');
   const [vaultPinLoading, setVaultPinLoading] = useState(false);
+
+  useEffect(() => {
+    refreshBiometricState();
+  }, [refreshBiometricState]);
 
   const currentFlowPin =
     vaultFlowMode === 'change_old'
@@ -110,11 +111,11 @@ export default function SettingsScreen() {
     if (vaultPinLoading) return;
     setVaultPinError('');
     if (vaultFlowMode === 'change_old') {
-      setVaultOldPin((p) => p.slice(0, -1));
+      setVaultOldPin((pin) => pin.slice(0, -1));
     } else if (vaultFlowMode === 'change_confirm') {
-      setVaultConfirmPin((p) => p.slice(0, -1));
+      setVaultConfirmPin((pin) => pin.slice(0, -1));
     } else {
-      setVaultPin((p) => p.slice(0, -1));
+      setVaultPin((pin) => pin.slice(0, -1));
     }
   };
 
@@ -127,7 +128,7 @@ export default function SettingsScreen() {
           setShowVaultPinFlow(false);
           Alert.alert(
             'PIN do Cofre criado',
-            'Registros e preparação para confissão agora ficam protegidos pelo PIN do Cofre.'
+            'Registros e preparacao para confissao agora ficam protegidos pelo PIN do Cofre.'
           );
         } else {
           setVaultPinError(result.error ?? 'Erro ao criar PIN.');
@@ -143,7 +144,7 @@ export default function SettingsScreen() {
         setVaultConfirmPin('');
       } else if (vaultFlowMode === 'change_confirm') {
         if (completedPin !== vaultPin) {
-          setVaultPinError('Os PINs não coincidem. Tente novamente.');
+          setVaultPinError('Os PINs nao coincidem. Tente novamente.');
           setVaultFlowMode('change_new');
           setVaultPin('');
           setVaultConfirmPin('');
@@ -166,34 +167,24 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleBiometricChange = async (enabled: boolean) => {
-    if (!enabled) {
-      await disableVaultBiometric();
-      Alert.alert('Digital desativada', 'Os registros abrirão apenas com o PIN do Cofre.');
-      return;
-    }
-
-    if (!hasVaultPin) {
-      Alert.alert('Crie o PIN do Cofre', 'O PIN do Cofre é necessário antes de ativar a digital.');
-      return;
-    }
-
-    setShowBiometricPinModal(true);
-  };
-
-  const handleBiometricPinConfirmed = async () => {
-    setShowBiometricPinModal(false);
-    const result = await enableVaultBiometric();
-    if (result.success) {
-      Alert.alert('Digital ativada', 'Você poderá abrir Registros com a digital neste aparelho.');
-    } else {
-      Alert.alert('Não foi possível ativar', result.error ?? 'Tente novamente.');
-    }
-  };
-
   const handleLockVault = () => {
     lockVault();
     Alert.alert('Registros bloqueados', 'O Cofre foi bloqueado.');
+  };
+
+  const handleBiometricChange = async (enabled: boolean) => {
+    if (!enabled) {
+      await disableVaultBiometric();
+      Alert.alert('Digital desativada', 'O Cofre abrira apenas com o PIN.');
+      return;
+    }
+
+    const result = await enableVaultBiometric();
+    if (result.success) {
+      Alert.alert('Digital ativada', 'Voce podera abrir o Cofre com a digital.');
+    } else {
+      Alert.alert('Nao foi possivel ativar', result.error ?? 'Tente novamente.');
+    }
   };
 
   const flowTitle = {
@@ -204,28 +195,17 @@ export default function SettingsScreen() {
   }[vaultFlowMode];
 
   const flowSubtitle = {
-    create: 'Escolha 6 dígitos para proteger Registros e Confissão.',
+    create: 'Escolha 6 digitos para proteger Registros e Confissao.',
     change_old: 'Digite seu PIN do Cofre atual.',
     change_new: 'Escolha o novo PIN do Cofre.',
     change_confirm: 'Confirme o novo PIN do Cofre.',
   }[vaultFlowMode];
 
-  const showBiometricControls = Platform.OS !== 'web' && hasVaultPin;
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Configurações</Text>
+        <Text style={styles.headerTitle}>Ajustes</Text>
       </View>
-
-      <VaultPinModal
-        visible={showBiometricPinModal}
-        title="Confirmar PIN do Cofre"
-        subtitle="Digite o PIN do Cofre antes de ativar a digital para Registros."
-        verifyPin={verifyVaultPin}
-        onSuccess={handleBiometricPinConfirmed}
-        onCancel={() => setShowBiometricPinModal(false)}
-      />
 
       <ScrollView
         style={styles.scroll}
@@ -244,7 +224,8 @@ export default function SettingsScreen() {
           <View style={styles.infoCard}>
             <Feather name="shield" size={16} color={theme.colors.accent} />
             <Text style={styles.infoCardText}>
-              O app abre direto. Apenas Registros e Preparar Confissão ficam dentro do Cofre.
+              O app abre direto. Apenas Registros e Preparar Confissao ficam
+              dentro do Cofre. Use PIN e, se desejar, digital neste aparelho.
             </Text>
           </View>
 
@@ -263,14 +244,14 @@ export default function SettingsScreen() {
             />
           )}
 
-          {showBiometricControls && (
+          {hasVaultPin && (
             <View style={styles.switchRow}>
               <View style={styles.switchText}>
-                <Text style={styles.switchLabel}>Usar digital para abrir Registros</Text>
+                <Text style={styles.switchLabel}>Abrir Cofre com digital</Text>
                 <Text style={styles.switchSub}>
                   {biometricAvailable
-                    ? 'Disponível somente neste aparelho.'
-                    : 'Biometria indisponível ou não cadastrada no aparelho.'}
+                    ? 'Disponivel para este aparelho.'
+                    : 'Cadastre uma digital no aparelho para ativar.'}
                 </Text>
               </View>
               <Switch
@@ -279,7 +260,7 @@ export default function SettingsScreen() {
                 disabled={!biometricAvailable}
                 trackColor={{
                   false: theme.colors.cardBorder,
-                  true: theme.colors.accent + '88',
+                  true: theme.colors.accentDark,
                 }}
                 thumbColor={
                   vaultBiometricEnabled ? theme.colors.accent : theme.colors.textMuted
@@ -291,7 +272,7 @@ export default function SettingsScreen() {
           {hasVaultPin && (
             <SettingsRow
               icon="lock"
-              label={vaultUnlocked ? 'Bloquear registros agora' : 'Registros já estão bloqueados'}
+              label={vaultUnlocked ? 'Bloquear registros agora' : 'Registros ja estao bloqueados'}
               onPress={handleLockVault}
               danger={vaultUnlocked}
             />
@@ -336,10 +317,11 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Sobre</Text>
           <View style={styles.aboutCard}>
-            <Text style={styles.aboutTitle}>Custódia</Text>
-            <Text style={styles.aboutSub}>Versão 1.0.0</Text>
+            <Text style={styles.aboutTitle}>Custodia</Text>
+            <Text style={styles.aboutSub}>Versao 1.0.0</Text>
             <Text style={styles.aboutText}>
-              100% offline. Sem servidor, sincronização, analytics, SQLite ou SecureStore neste MVP.
+              100% offline. Sem servidor, sincronizacao, analytics, SQLite ou
+              SecureStore neste MVP.
             </Text>
           </View>
         </View>
@@ -418,6 +400,7 @@ function SettingsRow({
     : accent
     ? theme.colors.accent
     : theme.colors.textPrimary;
+
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <Feather name={icon} size={18} color={color} />
@@ -506,7 +489,7 @@ const styles = StyleSheet.create({
   switchLabel: {
     color: theme.colors.textPrimary,
     fontSize: theme.fontSize.md,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   switchSub: {
     color: theme.colors.textMuted,

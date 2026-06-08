@@ -1,32 +1,31 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Alert,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
 import { SinCard } from '../../src/components/SinCard';
 import { VaultLockScreen } from '../../src/components/VaultLockScreen';
-import { Sin } from '../../src/types';
-import { getSins, deleteSin, updateSin } from '../../src/db/queries/sins';
+import { Sin, SinSourceType } from '../../src/types';
+import { deleteSin, getSins } from '../../src/db/queries/sins';
 import { useDatabase } from '../../src/hooks/useDatabase';
 import { useVaultAuth } from '../../src/context/VaultAuthContext';
 
-type Filter = 'all' | 'commandment' | 'capital_sin' | 'state_of_life' | 'confession';
+type Filter = 'all' | Exclude<SinSourceType, 'manual'>;
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'Todos' },
   { id: 'commandment', label: 'Mandamentos' },
-  { id: 'capital_sin', label: 'Capitais' },
-  { id: 'state_of_life', label: 'Estado de vida' },
-  { id: 'confession', label: 'Confissão' },
+  { id: 'capital_sin', label: 'Pecados Capitais' },
+  { id: 'state_of_life', label: 'Estado de Vida' },
 ];
 
 export default function SinsScreen() {
@@ -54,8 +53,7 @@ export default function SinsScreen() {
 
   const filteredSins = useMemo(() => {
     if (filter === 'all') return sins;
-    if (filter === 'confession') return sins.filter((sin) => sin.needsConfession);
-    return sins.filter((sin) => sin.type === filter);
+    return sins.filter((sin) => sin.sourceType === filter);
   }, [filter, sins]);
 
   const handleRefresh = async () => {
@@ -66,7 +64,7 @@ export default function SinsScreen() {
 
   const handleDelete = useCallback(
     (sin: Sin) => {
-      Alert.alert('Remover anotação', `Deseja remover "${sin.title}"?`, [
+      Alert.alert('Remover anotacao', 'Deseja remover este registro?', [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Remover',
@@ -82,15 +80,6 @@ export default function SinsScreen() {
     [loadSins, refreshAppState]
   );
 
-  const handleToggleNeedsConfession = useCallback(
-    async (sin: Sin) => {
-      await updateSin(sin.id, { needsConfession: !sin.needsConfession });
-      await loadSins();
-      await refreshAppState();
-    },
-    [loadSins, refreshAppState]
-  );
-
   if (!vaultUnlocked) {
     return <VaultLockScreen />;
   }
@@ -100,26 +89,26 @@ export default function SinsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Registros</Text>
         <Text style={styles.headerSub}>
-          Registros ativos guardados apenas neste aparelho.
+          Apenas anotacoes ativas, guardadas neste aparelho.
         </Text>
       </View>
 
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {FILTERS.map((f) => (
+          {FILTERS.map((item) => (
             <TouchableOpacity
-              key={f.id}
-              style={[styles.filterTab, filter === f.id && styles.filterTabActive]}
-              onPress={() => setFilter(f.id)}
+              key={item.id}
+              style={[styles.filterTab, filter === item.id && styles.filterTabActive]}
+              onPress={() => setFilter(item.id)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.filterText,
-                  filter === f.id && styles.filterTextActive,
+                  filter === item.id && styles.filterTextActive,
                 ]}
               >
-                {f.label}
+                {item.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -143,7 +132,8 @@ export default function SinsScreen() {
             <Feather name="check-circle" size={40} color={theme.colors.textMuted} />
             <Text style={styles.emptyTitle}>Nenhum registro ativo</Text>
             <Text style={styles.emptyText}>
-              Comece o exame de consciência ou anote algo diretamente.
+              As anotacoes aparecem aqui quando voce marca perguntas ou adiciona
+              notas durante o exame.
             </Text>
           </View>
         ) : (
@@ -153,19 +143,10 @@ export default function SinsScreen() {
               sin={sin}
               onPress={() => router.push(`/sins/${sin.id}`)}
               onDelete={() => handleDelete(sin)}
-              onToggleNeedsConfession={() => handleToggleNeedsConfession(sin)}
             />
           ))
         )}
       </ScrollView>
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/sins/new')}
-        activeOpacity={0.8}
-      >
-        <Feather name="plus" size={26} color={theme.colors.background} />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -226,7 +207,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.md,
-    paddingBottom: 100,
+    paddingBottom: theme.spacing.xxl,
   },
   emptyState: {
     alignItems: 'center',
@@ -246,21 +227,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: theme.spacing.sm,
     lineHeight: 20,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: theme.spacing.lg,
-    right: theme.spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
 });

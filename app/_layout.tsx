@@ -90,11 +90,8 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="exam" />
               <Stack.Screen name="confession" />
-              <Stack.Screen
-                name="sins/new"
-                options={{ presentation: 'modal', headerShown: false }}
-              />
-              <Stack.Screen name="sins/[id]" />
+              <Stack.Screen name="sins" />
+              <Stack.Screen name="prayers" />
               <Stack.Screen name="+not-found" />
             </Stack>
           </InitializerInner>

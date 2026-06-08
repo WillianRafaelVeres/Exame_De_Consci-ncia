@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
 
 export default function TabsLayout() {
@@ -9,66 +8,70 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.background,
-          borderTopColor: theme.colors.cardBorder,
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 4,
+          position: 'absolute',
+          left: 14,
+          right: 14,
+          bottom: 10,
+          height: 66,
+          paddingBottom: 9,
+          paddingTop: 8,
+          borderRadius: 24,
+          backgroundColor: 'rgba(24,27,30,0.96)',
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: theme.colors.cardBorder,
+          elevation: 12,
+          shadowColor: theme.colors.black,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.32,
+          shadowRadius: 14,
         },
         tabBarActiveTintColor: theme.colors.accent,
-        tabBarInactiveTintColor: '#8B7355',
+        tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: {
           fontSize: theme.fontSize.xs,
-          fontWeight: '500',
+          fontWeight: '700',
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Início',
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="guide"
-        options={{
-          title: 'Guia',
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="book-open" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="prayers"
-        options={{
-          title: 'Orações',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="hands-pray" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="sins"
+        name="exam"
         options={{
-          title: 'Registros',
+          title: 'Exame',
           tabBarIcon: ({ color, size }) => (
-            <Feather name="book" size={size} color={color} />
+            <MaterialCommunityIcons name="cross" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="prayers"
+        options={{
+          title: 'Oracoes',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="heart" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Ajustes',
+          title: 'Configuracoes',
           tabBarIcon: ({ color, size }) => (
             <Feather name="settings" size={size} color={color} />
           ),
         }}
       />
+      <Tabs.Screen name="guide" options={{ href: null }} />
+      <Tabs.Screen name="sins" options={{ href: null }} />
     </Tabs>
   );
 }

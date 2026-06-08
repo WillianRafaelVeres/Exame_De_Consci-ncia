@@ -14,107 +14,191 @@ import { Feather } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
 import { Button } from '../../src/components/Button';
 import {
-  AddSinNoteModal,
-  AddSinNotePayload,
-} from '../../src/components/AddSinNoteModal';
-import { fullExamContent, ExamSource } from '../../src/data/examContent';
+  ExamSource,
+  fullExamContent,
+  gratitudeReflections,
+} from '../../src/data/examContent';
 import { upsertExam } from '../../src/db/queries/exams';
-import { createSin } from '../../src/db/queries/sins';
+import { createSin, decrementSin, getSin } from '../../src/db/queries/sins';
+import { Sin } from '../../src/types';
 import { todayISO } from '../../src/utils/date';
 import { useDatabase } from '../../src/hooks/useDatabase';
 
-type Stage = 'opening' | 'gratitude' | 'content' | 'final_notes' | 'contrition';
+type Stage = 'opening' | 'gratitude' | 'content' | 'contrition';
 
-const openingPrayer = `Vinde, Espírito Santo.
-Iluminai minha memória, meu entendimento e minha vontade.
-Dai-me a graça de ver a verdade com humildade,
-sem desespero e sem desculpas,
-confiando sempre na misericórdia de Deus. Amém.`;
+const openingPrayer = `Em nome do Pai, do Filho e do Espírito Santo. Amém.
 
-const contritionPrayer = `Meu Deus,
-pesa-me muito ter-Vos ofendido,
-porque sois infinitamente bom
-e o pecado Vos desagrada.
+Meu Senhor e meu Deus, eu creio que estais aqui presente, que me vedes, me ouvis e conheceis tudo o que se passa em minha alma.
 
-Proponho firmemente,
-com o auxílio da vossa graça,
-não Vos ofender mais
-e evitar as ocasiões próximas de pecado.
+Dai-me luz para reconhecer meus pecados, humildade para não me justificar, dor sincera por Vos ter ofendido e força para mudar de vida.
 
-Senhor, misericórdia. Amém.`;
+Espírito Santo, iluminai minha consciência.
+Nossa Senhora, minha Mãe, ajudai-me a fazer este exame com verdade e confiança.
+Santo Anjo da Guarda, ajudai-me a ver minha alma como Deus a vê.
+
+Amém.`;
+
+const contritionPrayer = `Senhor meu Jesus Cristo, Deus e homem verdadeiro, Criador e Redentor meu, por serdes Vós quem sois, sumamente bom e digno de ser amado sobre todas as coisas, pesa-me de todo o coração ter-Vos ofendido.
+
+Pesa-me também por ter perdido o Céu e merecido o inferno, mas sobretudo porque pequei contra Vós, que sois tão bom e digno de todo amor.
+
+Proponho firmemente, com o auxílio da Vossa graça, confessar-me, cumprir a penitência, evitar as ocasiões de pecado e emendar a minha vida.
+
+Recebei, Senhor, o meu arrependimento. Dai-me um coração novo, humilde e fiel. Ajudai-me a combater meus pecados e a caminhar, dia após dia, para a santidade.
+
+Amém.`;
+
+function sourceSection(source: ExamSource): string {
+  if (source.type === 'commandment') return 'Dez Mandamentos';
+  if (source.type === 'capital_sin') return 'Pecados Capitais';
+  return 'Estado de vida';
+}
+
+function normalizeQuestionText(question: string): string {
+  return question.endsWith('?') ? question.slice(0, -1) + '.' : question;
+}
 
 export default function ExamScreen() {
   const router = useRouter();
   const { refreshAppState } = useDatabase();
   const [stage, setStage] = useState<Stage>('opening');
   const [sourceIndex, setSourceIndex] = useState(0);
-  const [gratitude, setGratitude] = useState('');
-  const [finalNotes, setFinalNotes] = useState('');
-  const [completed, setCompleted] = useState(false);
-  const [modalSource, setModalSource] = useState<ExamSource | null>(null);
-  const [notesBySource, setNotesBySource] = useState<Record<string, string[]>>({});
+  const [freeText, setFreeText] = useState('');
+  const [recordsBySource, setRecordsBySource] = useState<Record<string, Sin[]>>({});
+  const [checkedRecords, setCheckedRecords] = useState<Record<string, string>>({});
+  const [sessionId] = useState(() => `${todayISO()}_${Date.now()}`);
+
+  const reflection = useMemo(
+    () => gratitudeReflections[Math.floor(Math.random() * gratitudeReflections.length)],
+    []
+  );
 
   const currentSource = fullExamContent[sourceIndex];
-  const totalSteps = fullExamContent.length + 4;
+  const totalSteps = fullExamContent.length + 3;
   const currentStep = useMemo(() => {
     if (stage === 'opening') return 1;
     if (stage === 'gratitude') return 2;
     if (stage === 'content') return sourceIndex + 3;
-    if (stage === 'final_notes') return fullExamContent.length + 3;
     return totalSteps;
   }, [sourceIndex, stage, totalSteps]);
   const progress = currentStep / totalSteps;
+  const currentRecords = currentSource
+    ? recordsBySource[currentSource.id] ?? []
+    : [];
 
-  const handleSaveNote = useCallback(
-    async (payload: AddSinNotePayload) => {
-      await createSin({
+  const addRecordToState = (sourceId: string, record: Sin) => {
+    setRecordsBySource((prev) => ({
+      ...prev,
+      [sourceId]: [
+        ...(prev[sourceId] ?? []).filter((item) => item.id !== record.id),
+        record,
+      ],
+    }));
+  };
+
+  const removeRecordFromState = (recordId: string) => {
+    setRecordsBySource((prev) => {
+      const next: Record<string, Sin[]> = {};
+      for (const [sourceId, records] of Object.entries(prev)) {
+        next[sourceId] = records.filter((record) => record.id !== recordId);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleQuestion = useCallback(
+    async (source: ExamSource, question: string, index: number) => {
+      const key = `${source.id}:${index}`;
+      const existingId = checkedRecords[key];
+
+      if (existingId) {
+        await decrementSin(existingId);
+        setCheckedRecords((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+        removeRecordFromState(existingId);
+        await refreshAppState();
+        return;
+      }
+
+      const generatedId = `auto_${sessionId}_${source.id}_${index}`;
+      const id = await createSin({
+        id: generatedId,
         date: todayISO(),
-        type: payload.type,
-        sourceId: payload.sourceId,
-        sourceTitle: payload.sourceTitle,
-        title: payload.title,
-        description: payload.description,
-        occasion: payload.occasion,
-        commandment:
-          payload.type === 'commandment' ? payload.sourceTitle : null,
-        category:
-          payload.type === 'capital_sin' || payload.type === 'state_of_life'
-            ? payload.sourceTitle
-            : null,
-        nearOccasion: payload.occasion,
-        isRepeated: false,
-        needsConfession: payload.needsConfession,
-        hasRepaired: false,
-        concretePropose: null,
-        status: 'active',
+        sourceType: source.type,
+        sourceId: source.id,
+        sourceTitle: source.title,
+        text: normalizeQuestionText(question),
+        fromQuestion: true,
+        needsConfession: true,
       });
 
-      setNotesBySource((prev) => ({
-        ...prev,
-        [payload.sourceId]: [...(prev[payload.sourceId] ?? []), payload.title],
-      }));
+      const record = await getSin(id);
+      if (record) {
+        addRecordToState(source.id, record);
+      }
+      setCheckedRecords((prev) => ({ ...prev, [key]: id }));
       await refreshAppState();
     },
-    [refreshAppState]
+    [checkedRecords, refreshAppState, sessionId]
   );
 
-  const handleNextSource = async () => {
+  const handleAddFreeNote = async () => {
+    const text = freeText.trim();
+    if (!currentSource || !text) return;
+
+    const id = await createSin({
+      date: todayISO(),
+      sourceType: currentSource.type,
+      sourceId: currentSource.id,
+      sourceTitle: currentSource.title,
+      text,
+      fromQuestion: false,
+      needsConfession: true,
+    });
+
+    const record = await getSin(id);
+    if (record) {
+      addRecordToState(currentSource.id, record);
+    }
+    setFreeText('');
+    await refreshAppState();
+  };
+
+  const handleDeleteRecord = async (record: Sin) => {
+    await decrementSin(record.id);
+    removeRecordFromState(record.id);
+    setCheckedRecords((prev) => {
+      const next = { ...prev };
+      for (const [key, id] of Object.entries(next)) {
+        if (id === record.id) delete next[key];
+      }
+      return next;
+    });
+    await refreshAppState();
+  };
+
+  const handleNext = () => {
+    setFreeText('');
     if (sourceIndex < fullExamContent.length - 1) {
       setSourceIndex((prev) => prev + 1);
       return;
     }
-
-    setStage('final_notes');
+    setStage('contrition');
   };
 
   const handleComplete = async () => {
     await upsertExam(todayISO(), {
       stepReached: totalSteps,
       completed: true,
-      notes: [gratitude, finalNotes].filter(Boolean).join('\n\n') || null,
+      notes: null,
     });
     await refreshAppState();
-    setCompleted(true);
+    Alert.alert('Exame concluído', 'Exame de consciência concluído.', [
+      { text: 'OK', onPress: () => router.replace('/(tabs)') },
+    ]);
   };
 
   const handleClose = () => {
@@ -124,43 +208,8 @@ export default function ExamScreen() {
     ]);
   };
 
-  if (completed) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.completedContainer}>
-          <Text style={styles.completedCross}>✝</Text>
-          <Text style={styles.completedTitle}>Exame concluído</Text>
-          <Text style={styles.completedText}>
-            Recomece com confiança. A misericórdia de Deus é maior que toda queda.
-          </Text>
-          <Button
-            title="Voltar ao início"
-            variant="primary"
-            onPress={() => router.replace('/(tabs)')}
-            style={styles.completedButton}
-          />
-          <Button
-            title="Preparar confissão"
-            variant="secondary"
-            onPress={() => router.replace('/confession')}
-            style={styles.completedButton}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-      <AddSinNoteModal
-        visible={!!modalSource}
-        type={modalSource?.type ?? 'manual'}
-        sourceId={modalSource?.id ?? 'manual'}
-        sourceTitle={modalSource?.title ?? 'Anotação'}
-        onSave={handleSaveNote}
-        onClose={() => setModalSource(null)}
-      />
-
       <View style={styles.topBar}>
         <TouchableOpacity
           onPress={handleClose}
@@ -187,9 +236,7 @@ export default function ExamScreen() {
         {stage === 'opening' && (
           <View>
             <Text style={styles.stepTitle}>Oração inicial</Text>
-            <Text style={styles.stepSubtitle}>
-              Comece sem pressa, pedindo luz e confiança.
-            </Text>
+            <Text style={styles.stepSubtitle}>Comece com calma e recolhimento.</Text>
             <Text style={styles.prayerText}>{openingPrayer}</Text>
             <Button
               title="Começar"
@@ -204,17 +251,12 @@ export default function ExamScreen() {
           <View>
             <Text style={styles.stepTitle}>Gratidão do dia</Text>
             <Text style={styles.stepSubtitle}>
-              Antes de olhar as faltas, reconheça os dons recebidos.
+              Reconheça uma graça antes de examinar as faltas.
             </Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="Por quais graças, pessoas ou pequenos bens você agradece hoje?"
-              placeholderTextColor={theme.colors.textMuted}
-              value={gratitude}
-              onChangeText={setGratitude}
-              multiline
-              textAlignVertical="top"
-            />
+            <View style={styles.reflectionCard}>
+              <Feather name="sunrise" size={22} color={theme.colors.accent} />
+              <Text style={styles.reflectionText}>{reflection}</Text>
+            </View>
             <Button
               title="Continuar"
               variant="primary"
@@ -226,52 +268,74 @@ export default function ExamScreen() {
 
         {stage === 'content' && currentSource && (
           <View>
-            <Text style={styles.sourceKind}>
-              {currentSource.type === 'commandment'
-                ? 'Dez Mandamentos'
-                : currentSource.type === 'capital_sin'
-                ? 'Pecados Capitais'
-                : 'Estado de vida'}
-            </Text>
+            <Text style={styles.sourceKind}>{sourceSection(currentSource)}</Text>
             <Text style={styles.stepTitle}>{currentSource.title}</Text>
+            <Text style={styles.sourceSubtitle}>{currentSource.subtitle}</Text>
             <Text style={styles.explanation}>{currentSource.explanation}</Text>
 
             <View style={styles.virtueCard}>
-              <Text style={styles.virtueLabel}>Virtude oposta</Text>
+              <Text style={styles.virtueLabel}>Virtude</Text>
               <Text style={styles.virtueText}>{currentSource.virtue}</Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Perguntas para examinar</Text>
-            {currentSource.questions.map((question) => (
-              <View key={question} style={styles.questionRow}>
-                <Feather name="circle" size={8} color={theme.colors.accent} />
-                <Text style={styles.questionText}>{question}</Text>
-              </View>
-            ))}
+            <Text style={styles.sectionTitle}>Perguntas</Text>
+            {currentSource.questions.map((question, index) => {
+              const checked = Boolean(checkedRecords[`${currentSource.id}:${index}`]);
+              return (
+                <TouchableOpacity
+                  key={`${currentSource.id}-${question}`}
+                  style={[styles.questionRow, checked && styles.questionRowChecked]}
+                  activeOpacity={0.75}
+                  onPress={() => handleToggleQuestion(currentSource, question, index)}
+                >
+                  <View style={[styles.checkBox, checked && styles.checkBoxActive]}>
+                    {checked && (
+                      <Feather name="check" size={14} color={theme.colors.background} />
+                    )}
+                  </View>
+                  <Text style={[styles.questionText, checked && styles.questionTextChecked]}>
+                    {question}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
 
-            <Text style={styles.sectionTitle}>Exemplos possíveis</Text>
-            <View style={styles.examplesWrap}>
-              {currentSource.examples.map((example) => (
-                <View key={example} style={styles.examplePill}>
-                  <Text style={styles.exampleText}>{example}</Text>
-                </View>
-              ))}
-            </View>
-
+            <Text style={styles.sectionTitle}>Adicionar anotação</Text>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Escreva aqui sua anotação..."
+              placeholderTextColor={theme.colors.textMuted}
+              value={freeText}
+              onChangeText={setFreeText}
+              multiline
+              textAlignVertical="top"
+            />
             <Button
               title="Adicionar anotação"
               variant="secondary"
-              onPress={() => setModalSource(currentSource)}
-              style={styles.actionButton}
+              onPress={handleAddFreeNote}
+              disabled={!freeText.trim()}
+              style={styles.addNoteButton}
             />
 
-            {(notesBySource[currentSource.id] ?? []).length > 0 && (
+            {currentRecords.length > 0 && (
               <View style={styles.currentNotesCard}>
-                <Text style={styles.currentNotesTitle}>Anotações neste item</Text>
-                {(notesBySource[currentSource.id] ?? []).map((note, index) => (
-                  <Text key={`${note}-${index}`} style={styles.currentNoteText}>
-                    • {note}
-                  </Text>
+                <Text style={styles.currentNotesTitle}>
+                  Anotações deste item
+                </Text>
+                {currentRecords.map((record) => (
+                  <View key={record.id} style={styles.currentNoteRow}>
+                    <Text style={styles.currentNoteText}>
+                      {record.text}
+                      {record.count > 1 ? `  x${record.count}` : ''}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteRecord(record)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather name="trash-2" size={16} color={theme.colors.error} />
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             )}
@@ -279,35 +343,13 @@ export default function ExamScreen() {
             <Button
               title={
                 sourceIndex < fullExamContent.length - 1
-                  ? 'Próximo'
-                  : 'Ir para anotações finais'
+                  ? currentSource.type === 'commandment'
+                    ? 'Próximo mandamento'
+                    : 'Próximo'
+                  : 'Ato de contrição'
               }
               variant="primary"
-              onPress={handleNextSource}
-              style={styles.actionButton}
-            />
-          </View>
-        )}
-
-        {stage === 'final_notes' && (
-          <View>
-            <Text style={styles.stepTitle}>Anotações finais</Text>
-            <Text style={styles.stepSubtitle}>
-              Registre um propósito concreto ou algo que deseja levar à oração.
-            </Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="Propósito, reparação, ocasião a evitar..."
-              placeholderTextColor={theme.colors.textMuted}
-              value={finalNotes}
-              onChangeText={setFinalNotes}
-              multiline
-              textAlignVertical="top"
-            />
-            <Button
-              title="Ato de contrição"
-              variant="primary"
-              onPress={() => setStage('contrition')}
+              onPress={handleNext}
               style={styles.actionButton}
             />
           </View>
@@ -331,10 +373,7 @@ export default function ExamScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,7 +384,6 @@ const styles = StyleSheet.create({
   stepCounter: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.textMuted,
-    letterSpacing: 0.5,
   },
   progressBarContainer: {
     height: 3,
@@ -360,9 +398,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accent,
     borderRadius: 2,
   },
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   scrollContent: {
     padding: theme.spacing.md,
     paddingBottom: theme.spacing.xxl,
@@ -378,8 +414,34 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.lg,
-    fontStyle: 'italic',
     lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  prayerText: {
+    fontSize: 18,
+    color: theme.colors.textSecondary,
+    lineHeight: 30,
+    marginBottom: theme.spacing.xl,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+  },
+  reflectionCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.accent + '44',
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  reflectionText: {
+    color: theme.colors.textPrimary,
+    fontSize: theme.fontSize.lg,
+    lineHeight: 28,
+    fontWeight: '600',
   },
   sourceKind: {
     color: theme.colors.accent,
@@ -389,31 +451,26 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: theme.spacing.sm,
   },
-  explanation: {
+  sourceSubtitle: {
     color: theme.colors.textSecondary,
     fontSize: theme.fontSize.md,
-    lineHeight: 24,
-    marginBottom: theme.spacing.md,
+    lineHeight: 22,
+    marginBottom: theme.spacing.sm,
+    fontWeight: '600',
   },
-  prayerText: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textSecondary,
-    lineHeight: 28,
-    fontStyle: 'italic',
-    marginBottom: theme.spacing.xl,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+  explanation: {
+    color: theme.colors.textMuted,
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+    marginBottom: theme.spacing.md,
   },
   virtueCard: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.sm,
     padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.accent + '44',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   virtueLabel: {
     color: theme.colors.textMuted,
@@ -425,7 +482,7 @@ const styles = StyleSheet.create({
   virtueText: {
     color: theme.colors.textPrimary,
     fontSize: theme.fontSize.md,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   sectionTitle: {
     fontSize: theme.fontSize.xs,
@@ -438,101 +495,86 @@ const styles = StyleSheet.create({
   },
   questionRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.sm,
     padding: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    marginBottom: theme.spacing.sm,
+  },
+  questionRowChecked: {
+    backgroundColor: theme.colors.warning + '12',
+    borderColor: theme.colors.warning + '66',
+  },
+  checkBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: theme.colors.textMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBoxActive: {
+    backgroundColor: theme.colors.warning,
+    borderColor: theme.colors.warning,
   },
   questionText: {
     flex: 1,
     color: theme.colors.textSecondary,
-    fontSize: theme.fontSize.sm,
-    lineHeight: 20,
+    fontSize: theme.fontSize.md,
+    lineHeight: 22,
   },
-  examplesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+  questionTextChecked: {
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
   },
-  examplePill: {
+  noteInput: {
+    minHeight: 86,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.sm,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
+    color: theme.colors.textPrimary,
+    padding: theme.spacing.md,
+    fontSize: theme.fontSize.md,
+    lineHeight: 22,
   },
-  exampleText: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.fontSize.xs,
+  addNoteButton: {
+    marginTop: theme.spacing.sm,
   },
   currentNotesCard: {
-    backgroundColor: theme.colors.warning + '12',
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.warning + '44',
-    padding: theme.spacing.md,
-    marginTop: theme.spacing.md,
-  },
-  currentNotesTitle: {
-    color: theme.colors.warning,
-    fontSize: theme.fontSize.sm,
-    fontWeight: '700',
-    marginBottom: theme.spacing.xs,
-  },
-  currentNoteText: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.fontSize.sm,
-    lineHeight: 20,
-  },
-  notesInput: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    color: theme.colors.textPrimary,
     padding: theme.spacing.md,
-    fontSize: theme.fontSize.md,
-    minHeight: 180,
-    marginBottom: theme.spacing.lg,
-    lineHeight: 22,
-  },
-  actionButton: {
     marginTop: theme.spacing.md,
   },
-  completedContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.xl,
-  },
-  completedCross: {
-    fontSize: 56,
+  currentNotesTitle: {
     color: theme.colors.accent,
-    marginBottom: theme.spacing.lg,
-  },
-  completedTitle: {
-    fontSize: theme.fontSize.xl,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  completedText: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: theme.spacing.xxl,
-    fontStyle: 'italic',
-  },
-  completedButton: {
-    width: '100%',
+    fontSize: theme.fontSize.sm,
+    fontWeight: '800',
     marginBottom: theme.spacing.sm,
+  },
+  currentNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
+  },
+  currentNoteText: {
+    flex: 1,
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+  },
+  actionButton: {
+    marginTop: theme.spacing.lg,
   },
 });

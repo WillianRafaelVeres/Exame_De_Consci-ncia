@@ -1,28 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  Alert,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  Switch,
-  Alert,
-  ActivityIndicator,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
 import { Button } from '../../src/components/Button';
-import { Sin } from '../../src/types';
-import { getSin, updateSin, deleteSin } from '../../src/db/queries/sins';
+import { Sin, SinSourceType } from '../../src/types';
+import { deleteSin, getSin, updateSin } from '../../src/db/queries/sins';
 import { useDatabase } from '../../src/hooks/useDatabase';
-import { commandments } from '../../src/content/commandments';
-import { capitalSins } from '../../src/content/capitalSins';
 
-const COMMANDMENT_OPTIONS = ['', ...commandments.map((c) => c.title)];
-const CATEGORY_OPTIONS = ['', ...capitalSins.map((s) => s.title)];
+const TYPE_LABELS: Record<SinSourceType, string> = {
+  commandment: 'Mandamento',
+  capital_sin: 'Pecado capital',
+  state_of_life: 'Estado de vida',
+  manual: 'Manual',
+};
 
 export default function SinDetailScreen() {
   const router = useRouter();
@@ -30,69 +31,45 @@ export default function SinDetailScreen() {
   const { refreshAppState } = useDatabase();
 
   const [sin, setSin] = useState<Sin | null>(null);
+  const [text, setText] = useState('');
+  const [needsConfession, setNeedsConfession] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [commandment, setCommandment] = useState('');
-  const [category, setCategory] = useState('');
-  const [nearOccasion, setNearOccasion] = useState('');
-  const [isRepeated, setIsRepeated] = useState(false);
-  const [needsConfession, setNeedsConfession] = useState(true);
-  const [hasRepaired, setHasRepaired] = useState(false);
-  const [concretePropose, setConcretePropose] = useState('');
-  const [showCommandmentPicker, setShowCommandmentPicker] = useState(false);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-
   useEffect(() => {
     const load = async () => {
-      if (!id) return;
-      const data = await getSin(Number(id));
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      const data = await getSin(id);
       if (data) {
         setSin(data);
-        setTitle(data.title);
-        setDescription(data.description ?? '');
-        setCommandment(data.commandment ?? '');
-        setCategory(data.category ?? '');
-        setNearOccasion(data.occasion ?? data.nearOccasion ?? '');
-        setIsRepeated(data.isRepeated);
+        setText(data.text);
         setNeedsConfession(data.needsConfession);
-        setHasRepaired(data.hasRepaired);
-        setConcretePropose(data.concretePropose ?? '');
       }
       setLoading(false);
     };
+
     load();
   }, [id]);
 
   const handleSave = async () => {
-    if (!title.trim()) {
-      Alert.alert('Campo obrigatório', 'Por favor, informe o título do pecado.');
+    if (!sin) return;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      Alert.alert('Anotacao vazia', 'Escreva a anotacao antes de salvar.');
       return;
     }
-    if (!sin) return;
 
     setSaving(true);
     try {
-      await updateSin(sin.id, {
-        title: title.trim(),
-        description: description.trim() || null,
-        commandment: commandment || null,
-        category: category || null,
-        sourceTitle: commandment || category || sin.sourceTitle || 'Anotação manual',
-        type: commandment ? 'commandment' : category ? 'capital_sin' : sin.type ?? 'manual',
-        occasion: nearOccasion.trim() || null,
-        nearOccasion: nearOccasion.trim() || null,
-        isRepeated,
-        needsConfession,
-        hasRepaired,
-        concretePropose: concretePropose.trim() || null,
-      });
+      await updateSin(sin.id, { text: trimmed, needsConfession });
       await refreshAppState();
       router.back();
     } catch {
-      Alert.alert('Erro', 'Não foi possível salvar. Tente novamente.');
+      Alert.alert('Erro', 'Nao foi possivel salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -100,22 +77,18 @@ export default function SinDetailScreen() {
 
   const handleDelete = () => {
     if (!sin) return;
-    Alert.alert(
-      'Remover anotação',
-      `Deseja remover "${sin.title}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteSin(sin.id);
-            await refreshAppState();
-            router.back();
-          },
+    Alert.alert('Remover anotacao', 'Deseja remover este registro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteSin(sin.id);
+          await refreshAppState();
+          router.back();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) {
@@ -132,7 +105,7 @@ export default function SinDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.notFoundText}>Pecado não encontrado.</Text>
+          <Text style={styles.notFoundText}>Registro nao encontrado.</Text>
           <Button title="Voltar" variant="ghost" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -148,7 +121,7 @@ export default function SinDetailScreen() {
         >
           <Feather name="arrow-left" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Anotação</Text>
+        <Text style={styles.headerTitle}>Editar registro</Text>
         <TouchableOpacity
           onPress={handleDelete}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -163,173 +136,58 @@ export default function SinDetailScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.field}>
-          <Text style={styles.label}>Título <Text style={styles.required}>*</Text></Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            maxLength={120}
-            placeholderTextColor={theme.colors.textMuted}
-          />
+        <View style={styles.metaCard}>
+          <Text style={styles.metaLabel}>Origem</Text>
+          <Text style={styles.metaValue}>{TYPE_LABELS[sin.sourceType]}</Text>
+          <Text style={styles.metaSub}>{sin.sourceTitle}</Text>
+          <View style={styles.countRow}>
+            <Feather name="repeat" size={14} color={theme.colors.accent} />
+            <Text style={styles.countText}>
+              Registrado {sin.count} {sin.count === 1 ? 'vez' : 'vezes'}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Descrição</Text>
+          <Text style={styles.label}>Anotacao</Text>
           <TextInput
             style={[styles.input, styles.inputMultiline]}
-            value={description}
-            onChangeText={setDescription}
+            value={text}
+            onChangeText={setText}
             multiline
-            numberOfLines={3}
             textAlignVertical="top"
+            placeholder="Escreva aqui sua anotacao..."
             placeholderTextColor={theme.colors.textMuted}
           />
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Mandamento</Text>
-          <TouchableOpacity
-            style={styles.selectButton}
-            onPress={() => {
-              setShowCommandmentPicker(true);
-              setShowCategoryPicker(false);
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={commandment ? styles.selectValue : styles.selectPlaceholder} numberOfLines={1}>
-              {commandment || '— Nenhum —'}
+        <TouchableOpacity
+          style={styles.checkRow}
+          onPress={() => setNeedsConfession((value) => !value)}
+          activeOpacity={0.75}
+        >
+          <View style={[styles.checkbox, needsConfession && styles.checkboxActive]}>
+            {needsConfession && (
+              <Feather name="check" size={14} color={theme.colors.background} />
+            )}
+          </View>
+          <View style={styles.checkTextBlock}>
+            <Text style={styles.checkLabel}>Levar para confissao</Text>
+            <Text style={styles.checkSub}>
+              Quando ativo, aparece em Preparar Confissao.
             </Text>
-            <Feather name="chevron-down" size={16} color={theme.colors.textMuted} />
-          </TouchableOpacity>
-          {showCommandmentPicker && (
-            <View style={styles.picker}>
-              {COMMANDMENT_OPTIONS.map((opt) => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[styles.pickerItem, commandment === opt && styles.pickerItemActive]}
-                  onPress={() => {
-                    setCommandment(opt);
-                    setShowCommandmentPicker(false);
-                  }}
-                >
-                  <Text style={[styles.pickerItemText, commandment === opt && styles.pickerItemTextActive]} numberOfLines={2}>
-                    {opt || '— Nenhum —'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Categoria</Text>
-          <TouchableOpacity
-            style={styles.selectButton}
-            onPress={() => {
-              setShowCategoryPicker(true);
-              setShowCommandmentPicker(false);
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={category ? styles.selectValue : styles.selectPlaceholder} numberOfLines={1}>
-              {category || '— Nenhuma —'}
-            </Text>
-            <Feather name="chevron-down" size={16} color={theme.colors.textMuted} />
-          </TouchableOpacity>
-          {showCategoryPicker && (
-            <View style={styles.picker}>
-              {CATEGORY_OPTIONS.map((opt) => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[styles.pickerItem, category === opt && styles.pickerItemActive]}
-                  onPress={() => {
-                    setCategory(opt);
-                    setShowCategoryPicker(false);
-                  }}
-                >
-                  <Text style={[styles.pickerItemText, category === opt && styles.pickerItemTextActive]}>
-                    {opt || '— Nenhuma —'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Ocasião próxima</Text>
-          <TextInput
-            style={styles.input}
-            value={nearOccasion}
-            onChangeText={setNearOccasion}
-            placeholderTextColor={theme.colors.textMuted}
-          />
-        </View>
-
-        <View style={styles.toggleField}>
-          <View style={styles.toggleInfo}>
-            <Text style={styles.toggleLabel}>Pecado recorrente</Text>
           </View>
-          <Switch
-            value={isRepeated}
-            onValueChange={setIsRepeated}
-            trackColor={{ false: theme.colors.cardBorder, true: theme.colors.accent + '88' }}
-            thumbColor={isRepeated ? theme.colors.accent : theme.colors.textMuted}
-          />
-        </View>
-
-        <View style={styles.toggleField}>
-          <View style={styles.toggleInfo}>
-            <Text style={styles.toggleLabel}>Precisa de confissão</Text>
-          </View>
-          <Switch
-            value={needsConfession}
-            onValueChange={setNeedsConfession}
-            trackColor={{ false: theme.colors.cardBorder, true: theme.colors.accent + '88' }}
-            thumbColor={needsConfession ? theme.colors.accent : theme.colors.textMuted}
-          />
-        </View>
-
-        <View style={styles.toggleField}>
-          <View style={styles.toggleInfo}>
-            <Text style={styles.toggleLabel}>Reparação feita</Text>
-            <Text style={styles.toggleSub}>Se já reparou o dano causado</Text>
-          </View>
-          <Switch
-            value={hasRepaired}
-            onValueChange={setHasRepaired}
-            trackColor={{ false: theme.colors.cardBorder, true: theme.colors.success + '88' }}
-            thumbColor={hasRepaired ? theme.colors.success : theme.colors.textMuted}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Propósito concreto</Text>
-          <TextInput
-            style={[styles.input, styles.inputMultiline]}
-            value={concretePropose}
-            onChangeText={setConcretePropose}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            placeholderTextColor={theme.colors.textMuted}
-          />
-        </View>
+        </TouchableOpacity>
 
         <Button
-          title="Salvar alterações"
+          title="Salvar alteracoes"
           variant="primary"
           onPress={handleSave}
           loading={saving}
           style={styles.saveButton}
         />
 
-        <Button
-          title="Cancelar"
-          variant="ghost"
-          onPress={() => router.back()}
-        />
+        <Button title="Cancelar" variant="ghost" onPress={() => router.back()} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -344,6 +202,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: theme.spacing.lg,
   },
   notFoundText: {
     color: theme.colors.textSecondary,
@@ -372,6 +231,42 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     paddingBottom: theme.spacing.xxl,
   },
+  metaCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  metaLabel: {
+    color: theme.colors.textMuted,
+    fontSize: theme.fontSize.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  metaValue: {
+    color: theme.colors.accent,
+    fontSize: theme.fontSize.md,
+    fontWeight: '700',
+  },
+  metaSub: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.sm,
+    marginTop: 3,
+  },
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
+  },
+  countText: {
+    color: theme.colors.accent,
+    fontSize: theme.fontSize.sm,
+    fontWeight: '700',
+  },
   field: {
     marginBottom: theme.spacing.md,
   },
@@ -380,9 +275,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: theme.spacing.xs,
-  },
-  required: {
-    color: theme.colors.error,
   },
   input: {
     backgroundColor: theme.colors.card,
@@ -395,84 +287,46 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.md,
   },
   inputMultiline: {
-    minHeight: 80,
+    minHeight: 140,
     lineHeight: 22,
   },
-  selectButton: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+  checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 48,
-  },
-  selectValue: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textPrimary,
-    flex: 1,
-    marginRight: theme.spacing.sm,
-  },
-  selectPlaceholder: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textMuted,
-    flex: 1,
-    marginRight: theme.spacing.sm,
-  },
-  picker: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.sm,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    marginTop: 4,
-    maxHeight: 200,
-    overflow: 'hidden',
-  },
-  pickerItem: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.cardBorder,
-  },
-  pickerItemActive: {
-    backgroundColor: theme.colors.accent + '22',
-  },
-  pickerItemText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-  pickerItemTextActive: {
-    color: theme.colors.accent,
-    fontWeight: '600',
-  },
-  toggleField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
-  toggleInfo: {
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  checkboxActive: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
+  },
+  checkTextBlock: {
     flex: 1,
   },
-  toggleLabel: {
-    fontSize: theme.fontSize.md,
+  checkLabel: {
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontSize: theme.fontSize.md,
+    fontWeight: '600',
   },
-  toggleSub: {
-    fontSize: theme.fontSize.xs,
+  checkSub: {
     color: theme.colors.textMuted,
+    fontSize: theme.fontSize.xs,
     marginTop: 2,
+    lineHeight: 16,
   },
   saveButton: {
     marginTop: theme.spacing.sm,

@@ -1,26 +1,27 @@
-export type SinStatus = 'active' | 'confessed' | 'deleted';
-export type SinSourceType = 'commandment' | 'capital_sin' | 'state_of_life' | 'manual';
+export type SinSourceType =
+  | 'commandment'
+  | 'capital_sin'
+  | 'state_of_life'
+  | 'manual';
 
-export interface Sin {
-  id: number;
+export type SinStatus = 'active';
+
+export interface SinRecord {
+  id: string;
   date: string;
-  type?: SinSourceType;
-  sourceId?: string | null;
-  sourceTitle?: string | null;
-  commandment: string | null;
-  category: string | null;
-  title: string;
-  description: string | null;
-  occasion?: string | null;
-  nearOccasion: string | null;
-  isRepeated: boolean;
+  sourceType: SinSourceType;
+  sourceId: string;
+  sourceTitle: string;
+  text: string;
+  count: number;
+  fromQuestion: boolean;
   needsConfession: boolean;
-  hasRepaired: boolean;
-  concretePropose: string | null;
-  status: SinStatus;
-  createdAt: string;
-  updatedAt: string;
+  status: 'active';
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export type Sin = SinRecord;
 
 export interface DailyExam {
   id: number;
