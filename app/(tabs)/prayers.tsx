@@ -132,6 +132,34 @@ export default function PrayersScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <TouchableOpacity
+          onPress={() => router.push('/rosary')}
+          activeOpacity={0.78}
+        >
+          <LinearGradient
+            colors={['#3A4451', '#252A30']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.categoryCard}
+          >
+            <View style={styles.iconBox}>
+              <MaterialCommunityIcons
+                name="cross"
+                size={25}
+                color={theme.colors.accent}
+              />
+            </View>
+            <View style={styles.categoryText}>
+              <Text style={styles.categoryTitle}>Terço</Text>
+              <Text style={styles.categorySub}>
+                Mistério do dia e ofertas das dezenas
+              </Text>
+              <Text style={styles.countText}>Orações e intenções</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={theme.colors.textMuted} />
+          </LinearGradient>
+        </TouchableOpacity>
+
         {categories.map(({ category, count, meta }) => (
           <TouchableOpacity
             key={category}

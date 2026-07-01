@@ -1,16 +1,11 @@
 {
   "expo": {
-    "name": "Custódia",
-    "slug": "custodia",
+    "name": "Custodia",
+    "slug": "custodia-local",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#11151A"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.custodia.app"
@@ -24,17 +19,25 @@
     },
     "plugins": [
       "expo-router",
-      "expo-asset"
+      "expo-asset",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#11151A"
+        }
+      ],
+      "expo-status-bar",
+      "expo-web-browser"
     ],
-    "scheme": "custodia",
+    "scheme": "custodia-local",
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "f1e04b4b-38c7-4025-ac9c-acb8597f6028"
-      }
+      "router": {}
     }
   }
 }

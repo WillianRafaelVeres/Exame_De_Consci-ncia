@@ -27,8 +27,8 @@ export default function ExamTabScreen() {
         >
           <Text style={styles.primaryTitle}>Iniciar Novo Exame</Text>
           <Text style={styles.primaryText}>
-            Oracao inicial, mandamentos, pecados capitais, estado de vida e ato
-            de contricao.
+            Oracao inicial, reflexao do dia, dez mandamentos, pecados capitais
+            e ato de contricao.
           </Text>
           <TouchableOpacity
             style={styles.primaryPill}

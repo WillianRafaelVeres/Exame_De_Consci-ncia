@@ -78,7 +78,7 @@ export default function RootLayout() {
   return (
     <AppErrorBoundary>
       <SafeAreaProvider>
-        <StatusBar style="light" backgroundColor={theme.colors.background} />
+        <StatusBar style="light" />
         <VaultAuthProvider>
           <InitializerInner>
             <Stack
@@ -92,6 +92,7 @@ export default function RootLayout() {
               <Stack.Screen name="confession" />
               <Stack.Screen name="sins" />
               <Stack.Screen name="prayers" />
+              <Stack.Screen name="rosary" />
               <Stack.Screen name="+not-found" />
             </Stack>
           </InitializerInner>

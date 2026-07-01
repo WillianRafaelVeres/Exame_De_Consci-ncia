@@ -11,17 +11,18 @@ export interface ExamSource {
   howToImprove: string[];
 }
 
+export const heavenReflectionIntro =
+  'Antes de procurar faltas isoladas, coloque-se diante de Deus como quem poderia ser chamado hoje. O céu não é uma ideia distante: é a comunhão eterna com Aquele que me criou, me redimiu e me espera. Se este dia fosse apresentado agora ao Senhor, que amor verdadeiro Ele encontraria em mim? Que escolhas mostrariam que eu preferi Deus acima de tudo? E que apegos revelariam que vivi como se a eternidade não existisse?';
+
 export const gratitudeReflections = [
-  'Pelo que Deus me sustentou hoje, mesmo sem eu perceber?',
-  'Qual pequena graça de hoje eu talvez tenha ignorado?',
-  'Em que momento Deus me chamou à paciência?',
-  'Por qual pessoa devo agradecer hoje?',
-  'Que bem recebi hoje sem merecer?',
-  'Onde Deus me deu uma oportunidade de recomeçar?',
-  'Que proteção de Deus talvez tenha passado despercebida?',
-  'Qual obrigação cumprida hoje posso oferecer a Deus?',
-  'Em que momento fui amado, ajudado ou corrigido?',
-  'Que dom de hoje merece minha gratidão?',
+  'Por qual graça concreta de hoje devo agradecer antes de pedir perdão?',
+  'Se Deus me chamasse agora, eu iria ao encontro dEle com amor filial ou com o coração preso a outras coisas?',
+  'Que bem recebi hoje sem merecer e talvez tratei como se fosse obrigação de Deus?',
+  'Em que momento Deus me deu uma oportunidade real de conversão?',
+  'O que fiz hoje que poderia ser oferecido a Deus como sinal de amor?',
+  'Houve alguma pessoa, correção ou dificuldade pela qual Deus tentou me salvar de mim mesmo?',
+  'Que escolha de hoje me aproximou do céu? Que escolha me afastou?',
+  'Se eu tivesse de responder agora pelo meu dia, qual seria minha maior gratidão e minha maior dor?',
 ];
 
 export const commandmentExam: ExamSource[] = [
@@ -30,16 +31,17 @@ export const commandmentExam: ExamSource[] = [
     type: 'commandment',
     title: '1º Mandamento',
     subtitle: 'Amar a Deus sobre todas as coisas',
-    explanation: 'Examine se Deus esteve em primeiro lugar hoje.',
+    explanation:
+      'Olhe para o centro do seu dia: Deus foi amado como Senhor, ou recebeu apenas o tempo que sobrou?',
     virtue: 'fé, esperança, caridade e adoração',
     questions: [
-      'Rezei hoje?',
-      'Rezei com atenção?',
-      'Deixei de rezar sem motivo?',
+      'Reservei tempo real para Deus hoje?',
+      'Rezei com atenção e presença?',
+      'Deixei de rezar sem motivo justo?',
       'Coloquei dinheiro acima de Deus?',
       'Coloquei trabalho acima de Deus?',
       'Coloquei lazer acima de Deus?',
-      'Coloquei redes sociais acima de Deus?',
+      'Troquei oração, silêncio ou leitura espiritual por redes sociais e distrações?',
       'Confiei mais em mim do que em Deus?',
       'Tive vergonha da minha fé?',
       'Fui supersticioso?',
@@ -86,7 +88,8 @@ export const commandmentExam: ExamSource[] = [
     type: 'commandment',
     title: '3º Mandamento',
     subtitle: 'Guardar domingos e festas',
-    explanation: 'Examine a Missa, o descanso e o domingo vivido para Deus.',
+    explanation:
+      'Examine se o dia do Senhor foi vivido como encontro com Deus, e não apenas como descanso ou rotina.',
     virtue: 'culto, gratidão e descanso ordenado',
     questions: [
       'Fui à Missa?',
@@ -97,7 +100,7 @@ export const commandmentExam: ExamSource[] = [
       'Usei celular sem necessidade na Missa?',
       'Comunguei sem preparação?',
       'Fiz do domingo um dia igual aos outros?',
-      'Deixei de reservar tempo para Deus?',
+      'Dediquei tempo de domingo ou dia santo à oração, à família e ao descanso ordenado?',
       'Trabalhei sem necessidade grave?',
     ],
     howToImprove: [
@@ -111,7 +114,8 @@ export const commandmentExam: ExamSource[] = [
     type: 'commandment',
     title: '4º Mandamento',
     subtitle: 'Honrar pai e mãe',
-    explanation: 'Examine a caridade com família, autoridades e dependentes.',
+    explanation:
+      'Examine a caridade concreta com família, autoridades legítimas e pessoas confiadas aos seus cuidados.',
     virtue: 'gratidão, obediência justa e responsabilidade',
     questions: [
       'Fui desrespeitoso com meus pais?',
@@ -121,6 +125,8 @@ export const commandmentExam: ExamSource[] = [
       'Cumpri minhas responsabilidades?',
       'Dei mau exemplo?',
       'Fugi dos meus deveres familiares?',
+      'Fui ausente em casa, mesmo estando fisicamente presente?',
+      'Negligenciei cuidado, atenção ou formação de quem depende de mim?',
       'Desobedeci sem motivo justo?',
       'Fui duro com quem depende de mim?',
       'Faltei com caridade na família?',
@@ -190,7 +196,8 @@ export const commandmentExam: ExamSource[] = [
     type: 'commandment',
     title: '7º Mandamento',
     subtitle: 'Não furtar',
-    explanation: 'Examine bens, dinheiro, tempo, trabalho e restituição.',
+    explanation:
+      'Examine justiça, honestidade, bens, dinheiro, trabalho e qualquer restituição que seja devida.',
     virtue: 'justiça, honestidade e restituição',
     questions: [
       'Peguei algo que não era meu?',
@@ -199,9 +206,9 @@ export const commandmentExam: ExamSource[] = [
       'Deixei de pagar o que devia?',
       'Prejudiquei alguém financeiramente?',
       'Desperdicei bens confiados a mim?',
-      'Usei mal recursos do trabalho?',
-      'Fui injusto em dinheiro?',
-      'Fui preguiçoso no trabalho?',
+      'Usei mal recursos, tempo ou confiança recebidos no trabalho?',
+      'Fui injusto em dinheiro, salário, contrato ou pagamento?',
+      'Trabalhei ou estudei de modo desonesto, enganando quem confiou em mim?',
       'Quis vantagem indevida?',
     ],
     howToImprove: [
@@ -215,7 +222,8 @@ export const commandmentExam: ExamSource[] = [
     type: 'commandment',
     title: '8º Mandamento',
     subtitle: 'Não levantar falso testemunho',
-    explanation: 'Examine verdade, fofoca, julgamentos e segredos.',
+    explanation:
+      'Examine se suas palavras serviram à verdade e à caridade, ou se feriram reputações e relações.',
     virtue: 'verdade, prudência e caridade',
     questions: [
       'Menti?',
@@ -229,6 +237,7 @@ export const commandmentExam: ExamSource[] = [
       'Revelei segredo?',
       'Alimentei suspeitas injustas?',
       'Fui falso nas palavras?',
+      'Fui hipócrita, influenciei alguém para o mal ou mantive conversas que não edificam?',
     ],
     howToImprove: [
       'Corrigir uma mentira ou exagero.',
@@ -386,7 +395,8 @@ export const capitalSinExam: ExamSource[] = [
     type: 'capital_sin',
     title: 'Gula',
     subtitle: 'Virtude oposta: temperança',
-    explanation: 'A gula busca conforto sem medida em comida, bebida ou prazer.',
+    explanation:
+      'A gula busca conforto sem medida em comida, bebida, telas ou entretenimento, enfraquecendo o domínio de si.',
     virtue: 'temperança',
     questions: [
       'Comi sem moderação?',
@@ -395,7 +405,7 @@ export const capitalSinExam: ExamSource[] = [
       'Fui dominado por vontades?',
       'Reclamei da comida?',
       'Fui exigente demais?',
-      'Usei comida ou bebida para fugir dos deveres?',
+      'Usei comida, bebida, telas ou entretenimento para anestesiar a alma?',
     ],
     howToImprove: [
       'Praticar uma pequena renúncia.',
@@ -430,14 +440,15 @@ export const capitalSinExam: ExamSource[] = [
     type: 'capital_sin',
     title: 'Preguiça',
     subtitle: 'Virtude oposta: diligência',
-    explanation: 'A preguiça adia o bem possível e enfraquece o dever.',
+    explanation:
+      'A preguiça, especialmente a acídia, adia o bem possível e torna pesado aquilo que aproxima de Deus.',
     virtue: 'diligência',
     questions: [
       'Negligenciei meus deveres?',
       'Adiei o que devia fazer?',
       'Deixei de rezar por preguiça?',
       'Perdi tempo sem necessidade?',
-      'Fui mole com minhas obrigações?',
+      'Fui mole com obrigações de família, trabalho ou estudo?',
       'Deixei de fazer o bem possível?',
       'Usei celular para fugir do dever?',
     ],
@@ -609,5 +620,4 @@ export const stateOfLifeExam: ExamSource[] = [
 export const fullExamContent = [
   ...commandmentExam,
   ...capitalSinExam,
-  ...stateOfLifeExam,
 ];

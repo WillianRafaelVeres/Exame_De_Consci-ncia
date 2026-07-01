@@ -1,8 +1,8 @@
-# Custódia - execução local
+# Custodia - execucao local
 
-Aplicativo mobile offline em Expo/React Native. Neste MVP, os dados ficam somente no dispositivo usando AsyncStorage. O app abre direto; apenas Registros e Preparar Confissão usam o PIN do Cofre, salvo como hash. A digital é opcional e serve apenas para abrir o Cofre no aparelho.
+Aplicativo mobile offline em Expo/React Native.
 
-## Instalação
+## Instalar
 
 ```bash
 npm install
@@ -10,31 +10,50 @@ npm install
 
 ## Rodar no celular com Expo Go
 
-1. Instale o Expo Go no celular.
-2. Conecte computador e celular na mesma rede Wi-Fi.
-3. Rode:
+1. Atualize o Expo Go no celular.
+2. Apague o cache/dados do Expo Go no Android ou reinstale o Expo Go.
+3. Conecte computador e celular no mesmo Wi-Fi.
+4. Rode:
 
 ```bash
 npm run start:lan
 ```
 
-4. Escaneie o QR Code exibido no terminal com o Expo Go.
+5. O terminal vai mostrar:
 
-## Alternativa por tunnel
+```text
+Teste no navegador do celular: http://SEU_IP:PORTA/status
+URL manual no Expo Go: exp://SEU_IP:PORTA
+```
 
-Use quando LAN não funcionar por firewall, VPN ou rede restrita:
+6. Abra a URL `/status` no navegador do celular.
+
+Se aparecer `packager-status:running`, a rede esta OK. Abra o Expo Go, toque em `Scan QR Code` e escaneie o QR novo do terminal.
+
+Se a tela ainda mostrar `Failed to download remote update`, nao abra o projeto antigo pela Home do Expo Go. Limpe os dados do Expo Go/reinstale e escaneie o QR novo. Este projeto local usa o slug `custodia-local` para nao reaproveitar cache remoto antigo.
+
+Se a URL `/status` nao abrir no navegador do celular, rode o PowerShell como Administrador e execute:
+
+```bash
+npm run fix:expo-firewall
+```
+
+Depois rode `npm run start:lan` novamente.
+
+## Tunnel
+
+O tunnel usa ngrok e pode falhar com `failed to start tunnel` ou `remote gone away`.
 
 ```bash
 npm run start:tunnel
 ```
 
-## Verificações
+Prefira LAN quando isso acontecer.
+
+## Verificacoes
 
 ```bash
+npx expo install --check
 npx tsc --noEmit
 npx expo-doctor
 ```
-
-## Privacidade
-
-O app não usa login online, servidor, Supabase, Firebase, SQLite, SecureStore, analytics, crash reporting externo, sincronização ou backup automático. Qualquer exportação futura deve ser manual e criptografada.

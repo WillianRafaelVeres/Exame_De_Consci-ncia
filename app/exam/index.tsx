@@ -17,6 +17,7 @@ import {
   ExamSource,
   fullExamContent,
   gratitudeReflections,
+  heavenReflectionIntro,
 } from '../../src/data/examContent';
 import { upsertExam } from '../../src/db/queries/exams';
 import { createSin, decrementSin, getSin } from '../../src/db/queries/sins';
@@ -51,7 +52,7 @@ Amém.`;
 function sourceSection(source: ExamSource): string {
   if (source.type === 'commandment') return 'Dez Mandamentos';
   if (source.type === 'capital_sin') return 'Pecados Capitais';
-  return 'Estado de vida';
+  return 'Exame diário';
 }
 
 function normalizeQuestionText(question: string): string {
@@ -251,10 +252,11 @@ export default function ExamScreen() {
           <View>
             <Text style={styles.stepTitle}>Gratidão do dia</Text>
             <Text style={styles.stepSubtitle}>
-              Reconheça uma graça antes de examinar as faltas.
+              Reconheça a graça recebida e olhe seu dia à luz da eternidade.
             </Text>
             <View style={styles.reflectionCard}>
               <Feather name="sunrise" size={22} color={theme.colors.accent} />
+              <Text style={styles.reflectionBody}>{heavenReflectionIntro}</Text>
               <Text style={styles.reflectionText}>{reflection}</Text>
             </View>
             <Button
@@ -442,6 +444,11 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.lg,
     lineHeight: 28,
     fontWeight: '600',
+  },
+  reflectionBody: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.md,
+    lineHeight: 24,
   },
   sourceKind: {
     color: theme.colors.accent,
