@@ -10,15 +10,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
 import { Button } from '../../src/components/Button';
 import {
   getRosaryMysteryForDate,
+  getRosarySuggestionGroupForDay,
   getWeekdayForDate,
-  rosaryIntentionSuggestions,
   weekdayOptions,
 } from '../../src/content/rosary';
 import {
@@ -29,8 +28,9 @@ import {
 
 type RosaryMode = 'today' | 'intentions';
 
+const EMPTY_INTENTIONS = ['', '', '', '', ''];
+
 export default function RosaryScreen() {
-  const router = useRouter();
   const today = useMemo(() => new Date(), []);
   const todayWeekday = useMemo(() => getWeekdayForDate(today), [today]);
   const todayMystery = useMemo(() => getRosaryMysteryForDate(today), [today]);
@@ -55,14 +55,20 @@ export default function RosaryScreen() {
     };
   }, []);
 
-  const selectedDay = weekdayOptions.find((day) => day.id === selectedDayId) ?? todayWeekday;
-  const todayIntentions = intentions[todayWeekday.id] ?? [];
-  const selectedIntentions = intentions[selectedDayId] ?? ['', '', '', '', ''];
+  const selectedDay =
+    weekdayOptions.find((day) => day.id === selectedDayId) ?? todayWeekday;
+  const todayIntentions = intentions[todayWeekday.id] ?? EMPTY_INTENTIONS;
+  const selectedIntentions = intentions[selectedDayId] ?? EMPTY_INTENTIONS;
+  const selectedSuggestionGroup = getRosarySuggestionGroupForDay(selectedDayId);
 
-  const updateIntention = (dayId: string, decadeIndex: number, text: string) => {
+  const updateIntention = (
+    dayId: string,
+    decadeIndex: number,
+    text: string
+  ) => {
     setSavedMessage('');
     setIntentions((current) => {
-      const dayIntentions = current[dayId] ?? ['', '', '', '', ''];
+      const dayIntentions = current[dayId] ?? EMPTY_INTENTIONS;
       return {
         ...current,
         [dayId]: dayIntentions.map((value, index) =>
@@ -78,7 +84,7 @@ export default function RosaryScreen() {
 
   const handleSave = async () => {
     await saveRosaryIntentions(intentions);
-    setSavedMessage('Intenções salvas.');
+    setSavedMessage('Intencoes salvas.');
   };
 
   return (
@@ -88,29 +94,38 @@ export default function RosaryScreen() {
         style={styles.keyboardContainer}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Feather name="arrow-left" size={22} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
+          <View style={styles.headerIcon}>
+            <MaterialCommunityIcons
+              name="cross"
+              size={24}
+              color={theme.colors.accent}
+            />
+          </View>
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Terço</Text>
-            <Text style={styles.headerSub}>Mistério do dia e ofertas das dezenas.</Text>
+            <Text style={styles.headerTitle}>Terco</Text>
+            <Text style={styles.headerSub}>
+              Misterio do dia, leitura biblica e ofertas das dezenas.
+            </Text>
           </View>
         </View>
 
         <View style={styles.segmentedControl}>
           <TouchableOpacity
-            style={[styles.segmentButton, mode === 'today' && styles.segmentButtonActive]}
+            style={[
+              styles.segmentButton,
+              mode === 'today' && styles.segmentButtonActive,
+            ]}
             onPress={() => setMode('today')}
             activeOpacity={0.76}
           >
             <MaterialCommunityIcons
               name="cross"
               size={17}
-              color={mode === 'today' ? theme.colors.black : theme.colors.textSecondary}
+              color={
+                mode === 'today'
+                  ? theme.colors.black
+                  : theme.colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -132,7 +147,11 @@ export default function RosaryScreen() {
             <Feather
               name="edit-3"
               size={16}
-              color={mode === 'intentions' ? theme.colors.black : theme.colors.textSecondary}
+              color={
+                mode === 'intentions'
+                  ? theme.colors.black
+                  : theme.colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -140,7 +159,7 @@ export default function RosaryScreen() {
                 mode === 'intentions' && styles.segmentTextActive,
               ]}
             >
-              Intenções
+              Intencoes
             </Text>
           </TouchableOpacity>
         </View>
@@ -162,7 +181,7 @@ export default function RosaryScreen() {
                 <View style={styles.mysteryIcon}>
                   <MaterialCommunityIcons
                     name="cross"
-                    size={28}
+                    size={30}
                     color={theme.colors.accent}
                   />
                 </View>
@@ -171,14 +190,6 @@ export default function RosaryScreen() {
                 <Text style={styles.mysteryDays}>{todayMystery.days}</Text>
                 <Text style={styles.sourceNote}>{todayMystery.sourceNote}</Text>
               </LinearGradient>
-
-              <View style={styles.sequenceCard}>
-                <Text style={styles.sequenceTitle}>Forma breve</Text>
-                <Text style={styles.sequenceText}>
-                  Sinal da Cruz, oferecimento, Credo, Pai-Nosso, três Ave-Marias,
-                  Glória e as cinco dezenas com o mistério correspondente.
-                </Text>
-              </View>
 
               {todayMystery.decades.map((decade, index) => {
                 const intention = todayIntentions[index]?.trim();
@@ -193,10 +204,21 @@ export default function RosaryScreen() {
                         <Text style={styles.reference}>{decade.reference}</Text>
                       </View>
                     </View>
+
+                    <View style={styles.scriptureBlock}>
+                      <Text style={styles.blockLabel}>Leitura biblica</Text>
+                      <Text style={styles.scriptureText}>{decade.scripture}</Text>
+                    </View>
+
                     <Text style={styles.meditation}>{decade.meditation}</Text>
+
                     {intention ? (
                       <View style={styles.intentionLine}>
-                        <Feather name="heart" size={15} color={theme.colors.accent} />
+                        <Feather
+                          name="heart"
+                          size={15}
+                          color={theme.colors.accent}
+                        />
                         <Text style={styles.intentionText}>{intention}</Text>
                       </View>
                     ) : null}
@@ -205,7 +227,7 @@ export default function RosaryScreen() {
               })}
 
               <Button
-                title="Configurar intenções"
+                title="Configurar intencoes"
                 variant="secondary"
                 onPress={() => setMode('intentions')}
                 style={styles.actionButton}
@@ -231,7 +253,12 @@ export default function RosaryScreen() {
                       }}
                       activeOpacity={0.76}
                     >
-                      <Text style={[styles.dayChipText, selected && styles.dayChipTextActive]}>
+                      <Text
+                        style={[
+                          styles.dayChipText,
+                          selected && styles.dayChipTextActive,
+                        ]}
+                      >
                         {day.shortLabel}
                       </Text>
                     </TouchableOpacity>
@@ -239,17 +266,23 @@ export default function RosaryScreen() {
                 })}
               </ScrollView>
 
-              <Text style={styles.intentionsTitle}>{selectedDay.label}</Text>
-              <Text style={styles.intentionsSub}>Ofertas para cada dezena.</Text>
+              <View style={styles.intentionsHeaderCard}>
+                <Text style={styles.intentionsTitle}>{selectedDay.label}</Text>
+                <Text style={styles.intentionsSub}>
+                  {selectedSuggestionGroup.theme}
+                </Text>
+              </View>
 
               {selectedIntentions.map((value, index) => (
                 <View key={`${selectedDayId}-${index}`} style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>{index + 1}ª dezena</Text>
+                  <Text style={styles.inputLabel}>{index + 1}a dezena</Text>
                   <TextInput
                     value={value}
-                    onChangeText={(text) => updateIntention(selectedDayId, index, text)}
+                    onChangeText={(text) =>
+                      updateIntention(selectedDayId, index, text)
+                    }
                     onFocus={() => setActiveDecadeIndex(index)}
-                    placeholder="Pela intenção..."
+                    placeholder="Pela intencao..."
                     placeholderTextColor={theme.colors.textMuted}
                     style={[
                       styles.intentionInput,
@@ -261,9 +294,14 @@ export default function RosaryScreen() {
                 </View>
               ))}
 
-              <Text style={styles.suggestionsTitle}>Sugestões</Text>
+              <Text style={styles.suggestionsTitle}>
+                Sugestoes para {selectedDay.label}
+              </Text>
+              <Text style={styles.suggestionsSub}>
+                Toque em uma sugestao para preencher a dezena ativa.
+              </Text>
               <View style={styles.suggestionsWrap}>
-                {rosaryIntentionSuggestions.map((suggestion) => (
+                {selectedSuggestionGroup.suggestions.map((suggestion) => (
                   <TouchableOpacity
                     key={suggestion}
                     style={styles.suggestionChip}
@@ -275,10 +313,12 @@ export default function RosaryScreen() {
                 ))}
               </View>
 
-              {savedMessage ? <Text style={styles.savedMessage}>{savedMessage}</Text> : null}
+              {savedMessage ? (
+                <Text style={styles.savedMessage}>{savedMessage}</Text>
+              ) : null}
 
               <Button
-                title="Salvar intenções"
+                title="Salvar intencoes"
                 variant="primary"
                 onPress={handleSave}
                 style={styles.actionButton}
@@ -307,9 +347,15 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.sm,
   },
-  backButton: {
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.xs,
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: 'rgba(231,200,145,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,200,145,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerText: {
     flex: 1,
@@ -360,7 +406,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.md,
-    paddingBottom: theme.spacing.xxl,
+    paddingBottom: 112,
   },
   todayCard: {
     minHeight: 206,
@@ -409,27 +455,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: theme.spacing.sm,
   },
-  sequenceCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  sequenceTitle: {
-    color: theme.colors.accent,
-    fontSize: theme.fontSize.xs,
-    fontWeight: '900',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: theme.spacing.xs,
-  },
-  sequenceText: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.fontSize.sm,
-    lineHeight: 21,
-  },
   decadeCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
@@ -470,6 +495,27 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontSize: theme.fontSize.xs,
     marginTop: 3,
+  },
+  scriptureBlock: {
+    borderRadius: theme.radius.md,
+    backgroundColor: 'rgba(231,200,145,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,200,145,0.18)',
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  blockLabel: {
+    color: theme.colors.accent,
+    fontSize: theme.fontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: theme.spacing.xs,
+  },
+  scriptureText: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.sm,
+    lineHeight: 21,
   },
   meditation: {
     color: theme.colors.textSecondary,
@@ -522,6 +568,14 @@ const styles = StyleSheet.create({
   dayChipTextActive: {
     color: theme.colors.black,
   },
+  intentionsHeaderCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
   intentionsTitle: {
     color: theme.colors.textPrimary,
     fontSize: theme.fontSize.lg,
@@ -533,7 +587,6 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     lineHeight: 19,
     marginTop: 2,
-    marginBottom: theme.spacing.md,
   },
   inputGroup: {
     marginBottom: theme.spacing.sm,
@@ -567,6 +620,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
+  },
+  suggestionsSub: {
+    color: theme.colors.textMuted,
+    fontSize: theme.fontSize.xs,
+    lineHeight: 17,
     marginBottom: theme.spacing.sm,
   },
   suggestionsWrap: {

@@ -112,7 +112,6 @@ export default function RootLayout() {
               <Stack.Screen name="confession" />
               <Stack.Screen name="sins" />
               <Stack.Screen name="prayers" />
-              <Stack.Screen name="rosary" />
               <Stack.Screen name="+not-found" />
             </Stack>
           </VaultAuthProvider>

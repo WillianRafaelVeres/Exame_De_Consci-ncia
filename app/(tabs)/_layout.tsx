@@ -53,6 +53,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="rosary"
+        options={{
+          title: 'Terco',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cross" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="prayers"
         options={{
           title: 'Oracoes',
