@@ -29,7 +29,6 @@
           "backgroundColor": "#11151A"
         }
       ],
-      "expo-status-bar",
       "expo-web-browser"
     ],
     "scheme": "custodia-local",

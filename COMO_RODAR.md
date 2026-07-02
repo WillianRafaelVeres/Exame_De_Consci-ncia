@@ -2,6 +2,8 @@
 
 Aplicativo mobile offline em Expo/React Native.
 
+> Este projeto esta fixado no Expo SDK 54 para funcionar no Expo Go instalado pela Play Store. SDKs mais novos podem aparecer como incompativeis no celular mesmo quando o Expo Go ja esta atualizado.
+
 ## Instalar
 
 ```bash
