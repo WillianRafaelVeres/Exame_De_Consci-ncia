@@ -32,12 +32,8 @@ export function useDatabase() {
   }, [setActiveSinCount, setTodayExamDone, setLastConfessionDate, setLoaded]);
 
   const initializeDatabase = useCallback(async (): Promise<void> => {
-    try {
-      await initializeLocalDatabase();
-      await refreshAppState();
-    } catch (error) {
-      console.error('Database initialization error:', error);
-    }
+    await initializeLocalDatabase();
+    await refreshAppState();
   }, [refreshAppState]);
 
   return {

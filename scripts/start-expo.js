@@ -5,6 +5,7 @@ const os = require('os');
 const DEFAULT_PORT = 8081;
 const PORT_SCAN_LIMIT = 20;
 const VALID_MODES = new Set(['lan', 'tunnel']);
+const EXPLICIT_HOST_ENV_KEYS = ['EXPO_GO_HOST_IP', 'REACT_NATIVE_PACKAGER_HOSTNAME'];
 
 function getMode() {
   const mode = process.argv[2] || 'lan';
@@ -33,7 +34,19 @@ function getExpoCliPath() {
   }
 }
 
-function getLanAddress() {
+function isPrivateIPv4(address) {
+  if (address.startsWith('10.')) return true;
+  if (address.startsWith('192.168.')) return true;
+
+  const parts = address.split('.').map((part) => Number.parseInt(part, 10));
+  return parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
+}
+
+function isLikelyVirtualInterface(name) {
+  return /bluetooth|docker|hyper-v|loopback|npcap|tailscale|tunnel|virtual|vethernet|vmware|vpn|wsl/i.test(name);
+}
+
+function getLanCandidates() {
   const candidates = [];
   const interfaces = os.networkInterfaces();
 
@@ -47,19 +60,78 @@ function getLanAddress() {
         continue;
       }
 
-      candidates.push({ name, address: address.address });
+      candidates.push({
+        name,
+        address: address.address,
+        private: isPrivateIPv4(address.address),
+        virtual: isLikelyVirtualInterface(name),
+      });
     }
   }
 
+  return candidates.sort((a, b) => scoreLanCandidate(b) - scoreLanCandidate(a));
+}
+
+function scoreLanCandidate(candidate) {
+  let score = 0;
+
+  if (candidate.private) score += 80;
+  if (!candidate.virtual) score += 60;
+  if (/wi-?fi|wlan/i.test(candidate.name)) score += 40;
+  if (/ethernet/i.test(candidate.name)) score += 20;
+  if (candidate.virtual) score -= 120;
+
+  return score;
+}
+
+function getExplicitLanAddress() {
+  for (const key of EXPLICIT_HOST_ENV_KEYS) {
+    const value = process.env[key];
+    if (value && value.trim()) {
+      return { source: key, address: value.trim() };
+    }
+  }
+
+  return null;
+}
+
+function getLanAddress() {
+  const explicit = getExplicitLanAddress();
+  if (explicit) {
+    return explicit;
+  }
+
+  const candidates = getLanCandidates();
   if (candidates.length === 0) {
     return null;
   }
 
-  const preferred =
-    candidates.find((candidate) => /wi-?fi|wlan|ethernet/i.test(candidate.name)) ||
-    candidates[0];
+  const [preferred] = candidates;
+  return { ...preferred, source: preferred.name };
+}
 
-  return preferred.address;
+function printLanDiagnostics(selected, port) {
+  const candidates = getLanCandidates();
+
+  if (candidates.length > 0) {
+    console.log('IPs de rede detectados:');
+    for (const candidate of candidates) {
+      const marker = candidate.address === selected.address ? '*' : '-';
+      const flags = [
+        candidate.private ? 'privado' : 'nao-privado',
+        candidate.virtual ? 'virtual/vpn' : 'fisico',
+      ].join(', ');
+      console.log(` ${marker} ${candidate.address} (${candidate.name}; ${flags})`);
+    }
+  }
+
+  console.log('');
+  console.log(`Expo LAN host: ${selected.address}`);
+  console.log(`Teste no navegador do celular: http://${selected.address}:${port}/status`);
+  console.log(`URL manual no Expo Go: exp://${selected.address}:${port}`);
+  console.log('');
+  console.log('Se o celular nao abrir a URL /status, a rede/firewall esta bloqueando o Metro.');
+  console.log('Nesse caso rode `npm run fix:expo-firewall` como Administrador ou use `npm run start:tunnel`.');
 }
 
 function warnIfWindowsNetworkIsPublic() {
@@ -115,14 +187,29 @@ async function findFreePort(startPort) {
 function getExtraArgs() {
   return process.argv
     .slice(3)
-    .filter((arg) => arg !== '--dry-run' && arg !== '--offline');
+    .filter((arg) => arg !== '--dry-run');
+}
+
+function appendNoProxy(env, host) {
+  const entries = new Set(
+    [env.NO_PROXY, env.no_proxy]
+      .filter(Boolean)
+      .flatMap((value) => value.split(',').map((item) => item.trim()).filter(Boolean)),
+  );
+
+  for (const item of ['localhost', '127.0.0.1', host]) {
+    entries.add(item);
+  }
+
+  const value = Array.from(entries).join(',');
+  env.NO_PROXY = value;
+  env.no_proxy = value;
 }
 
 async function main() {
   const mode = getMode();
   const dryRun = process.argv.includes('--dry-run');
   const extraArgs = getExtraArgs();
-  const offlineRequested = process.argv.includes('--offline');
   const startPort = getStartPort(mode);
   const port = await findFreePort(startPort);
 
@@ -132,27 +219,26 @@ async function main() {
   }
 
   const env = { ...process.env };
-  const hostArgs = mode === 'tunnel' ? ['--tunnel'] : ['--lan'];
+  const hostArgs = ['--host', mode];
+  env.EXPO_NO_TELEMETRY = '1';
 
   if (mode === 'lan') {
-    if (offlineRequested) {
-      console.log('Aviso: ignorando --offline porque o Expo SDK 57 nao permite usar --offline junto com --lan.');
-    }
-
-    const host = process.env.REACT_NATIVE_PACKAGER_HOSTNAME || getLanAddress();
+    const host = getLanAddress();
     if (!host) {
       console.error('Nao encontrei um IP de rede local. Verifique se o Wi-Fi/Ethernet esta ativo.');
       process.exit(1);
     }
 
-    env.REACT_NATIVE_PACKAGER_HOSTNAME = host;
-    console.log(`Expo LAN host: ${host}`);
-    console.log(`Teste no navegador do celular: http://${host}:${port}/status`);
-    console.log(`URL manual no Expo Go: exp://${host}:${port}`);
+    const address = host.address;
+    env.REACT_NATIVE_PACKAGER_HOSTNAME = address;
+    appendNoProxy(env, address);
+    printLanDiagnostics(host, port);
     warnIfWindowsNetworkIsPublic();
   } else {
     delete env.REACT_NATIVE_PACKAGER_HOSTNAME;
+    appendNoProxy(env, '127.0.0.1');
     console.log('Expo tunnel: ngrok');
+    console.log('Use este modo quando o celular nao consegue acessar a URL /status da LAN.');
   }
 
   if (port !== startPort) {

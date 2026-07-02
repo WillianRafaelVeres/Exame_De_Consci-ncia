@@ -14,6 +14,8 @@ import { theme } from '../src/constants/theme';
 import { VaultAuthProvider } from '../src/context/VaultAuthContext';
 import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
 
+const STARTUP_TIMEOUT_MS = 15000;
+
 function InitializerInner({ children }: { children: React.ReactNode }) {
   const { initializeDatabase } = useDatabase();
   const [initializing, setInitializing] = useState(true);
@@ -26,16 +28,34 @@ function InitializerInner({ children }: { children: React.ReactNode }) {
     async function initialize() {
       setInitializing(true);
       setStartupError(null);
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
       try {
-        await initializeDatabase();
+        await Promise.race([
+          initializeDatabase(),
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(() => {
+              reject(
+                new Error(
+                  'Tempo excedido ao preparar os dados locais. Feche o Expo Go, limpe o cache e tente de novo.'
+                )
+              );
+            }, STARTUP_TIMEOUT_MS);
+          }),
+        ]);
       } catch (error) {
         console.error('Erro ao inicializar app:', error);
         if (mounted) {
+          const detail =
+            __DEV__ && error instanceof Error && error.message
+              ? `\n\nDetalhe: ${error.message}`
+              : '';
           setStartupError(
-            'Não foi possível carregar os dados locais do app. Tente novamente.'
+            `Nao foi possivel carregar os dados locais do app. Tente novamente.${detail}`
           );
         }
       } finally {
+        if (timeoutId) clearTimeout(timeoutId);
         if (mounted) setInitializing(false);
       }
     }
@@ -79,8 +99,8 @@ export default function RootLayout() {
     <AppErrorBoundary>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <VaultAuthProvider>
-          <InitializerInner>
+        <InitializerInner>
+          <VaultAuthProvider>
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -95,8 +115,8 @@ export default function RootLayout() {
               <Stack.Screen name="rosary" />
               <Stack.Screen name="+not-found" />
             </Stack>
-          </InitializerInner>
-        </VaultAuthProvider>
+          </VaultAuthProvider>
+        </InitializerInner>
       </SafeAreaProvider>
     </AppErrorBoundary>
   );
