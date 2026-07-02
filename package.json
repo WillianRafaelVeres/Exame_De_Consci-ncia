@@ -8,6 +8,10 @@
     "start:lan": "node scripts/start-expo.js lan",
     "start:tunnel": "node scripts/start-expo.js tunnel",
     "android": "expo start --android",
+    "eas:login": "npx eas-cli@latest login",
+    "eas:configure": "npx eas-cli@latest build:configure",
+    "build:android:apk": "npx eas-cli@latest build --platform android --profile preview",
+    "install:android:emulator": "npx eas-cli@latest build:run --platform android --latest",
     "fix:expo-firewall": "powershell -ExecutionPolicy Bypass -File scripts/fix-expo-firewall.ps1",
     "doctor": "npx expo-doctor"
   },

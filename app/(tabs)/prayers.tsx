@@ -52,6 +52,18 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
     icon: 'check-circle',
     colors: ['#2F4A47', '#1D272A'],
   },
+  'Oracoes dos Santos': {
+    title: 'Oracoes dos Santos',
+    subtitle: 'Preces antigas para entrega e perseveranca',
+    icon: 'star',
+    colors: ['#3E4248', '#20242A'],
+  },
+  'Virtudes Teologais': {
+    title: 'Virtudes Teologais',
+    subtitle: 'Atos de fe, esperanca e caridade',
+    icon: 'sun',
+    colors: ['#404632', '#20261E'],
+  },
   'Nossa Senhora': {
     title: 'Nossa Senhora',
     subtitle: 'Orações marianas tradicionais',
@@ -63,6 +75,12 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
     subtitle: 'Luz, discernimento e docilidade',
     icon: 'cross',
     colors: ['#4A333A', '#252229'],
+  },
+  Eucaristia: {
+    title: 'Eucaristia',
+    subtitle: 'Adoracao, comunhao espiritual e reparacao',
+    icon: 'circle',
+    colors: ['#4A4432', '#25251F'],
   },
   Proteção: {
     title: 'Proteção',

@@ -69,6 +69,36 @@ npm run start:tunnel
 
 O tunnel usa ngrok e depende da internet. Se ele falhar com `failed to start tunnel` ou `remote gone away`, volte para LAN e corrija a rede/firewall.
 
+## Instalar no Android como app
+
+O Expo Go serve para abrir/testar o projeto. Para instalar o Custodia como aplicativo separado no celular, gere um APK com EAS Build.
+
+Primeiro faca login:
+
+```bash
+npm run eas:login
+```
+
+Na primeira vez, configure/vincule o projeto EAS:
+
+```bash
+npm run eas:configure
+```
+
+Depois gere o APK:
+
+```bash
+npm run build:android:apk
+```
+
+Quando o build terminar, o EAS mostra um link/QR Code. Abra esse link no celular Android e instale o APK. Se o Android pedir permissao para instalar app de fonte desconhecida, libere para o navegador usado no download.
+
+Para instalar o ultimo build em um emulador Android:
+
+```bash
+npm run install:android:emulator
+```
+
 ## Verificacoes
 
 ```bash
